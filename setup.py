@@ -56,7 +56,7 @@ setup(
     ],
 
     test_suite='nose.collector',
-    tests_require=['nose'],
+    tests_require=['nose>=1.3.0'],
 )
 
 # EOF
