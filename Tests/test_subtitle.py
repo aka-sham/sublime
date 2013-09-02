@@ -3,7 +3,7 @@
 
 ###
 # Project          : SubLime
-# FileName         : test_languages.py
+# FileName         : test_subtitle.py
 # ------------------------------------------------------------------------------
 # Author           : sham
 # E-Mail           : mauricesham@gmail.com
@@ -13,8 +13,8 @@
 
 import unittest
 
-from sublime.languages import LanguageInfo
-from sublime.languages import LanguageManager
+from sublime.subtitle import LanguageInfo
+from sublime.subtitle import LanguageManager
 
 
 # ------------------------------------------------------------------------------

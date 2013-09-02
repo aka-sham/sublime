@@ -14,16 +14,16 @@
 import os
 import argparse
 
-import utils
+import util
 
-__version__ = utils.get_version_from_git()
+__version__ = util.get_version_from_git()
 
 # Gets execution directory
-exe_dir = utils.get_exe_dir()
+exe_dir = util.get_exe_dir()
 # Sets environment variable for the application
 os.environ['SUBLIME_HOME'] = exe_dir
 # Gets a logger
-LOG = utils.init_logging()
+LOG = util.init_logging()
 
 
 def run():

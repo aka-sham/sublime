@@ -20,11 +20,11 @@ import sys
 source_dir = "Sources"
 sys.path.append(source_dir)
 
-from sublime import utils
+from sublime import util
 from setuptools import setup
 from setuptools import find_packages
 
-__version__ = utils.get_version_from_git
+__version__ = util.get_version_from_git
 
 setup(
     name="SubLime",

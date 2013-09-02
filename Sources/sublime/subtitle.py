@@ -3,7 +3,7 @@
 
 ###
 # Project          : SubLime
-# FileName         : locales.py
+# FileName         : subtitle.py
 # ------------------------------------------------------------------------------
 # Author           : sham
 # E-Mail           : mauricesham@gmail.com
@@ -15,12 +15,40 @@ import logging
 import os
 import csv
 
-from sublime import utils
+from sublime import util
 
 # Logger
-LOG = logging.getLogger("sublime.languages")
+LOG = logging.getLogger("sublime.subtitle")
 # Gets EXE dir
-exe_dir = utils.get_exe_dir()
+exe_dir = util.get_exe_dir()
+
+
+# ------------------------------------------------------------------------------
+#
+# Subtitle class
+#
+# ------------------------------------------------------------------------------
+class Subtitle(object):
+    """ Subtitle class manages subtitle files. """
+
+    def __init__(self, server_info, server_data):
+        """ Constructor. """
+        self._server_info = server_info
+        self._server_data = server_data
+
+        self.format = ""
+        self.language = ""
+        self.data = ""
+        self.rating = 0.0
+
+    def get_filename(self, movie_filename):
+        """ """
+        return os.path.splitext(os.path.basename(movie_filename)) + self.format
+
+    def has_data(self):
+        """ """
+        return len(self.data) > 0
+
 
 # ------------------------------------------------------------------------------
 #
@@ -42,6 +70,7 @@ class LanguageInfo(object):
             "<LanguageInfo('%s', '%s', '%s', '%s')>" %
             (self.long_code, self.long_code_alt, self.short_code, self.name)
         )
+
 
 # ------------------------------------------------------------------------------
 #
