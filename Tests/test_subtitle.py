@@ -29,17 +29,17 @@ class LanguagesTestCase(unittest.TestCase):
         """ Tests creation of a languageinfo object. """
         lang_info = LanguageInfo("yor", None, "yo", "Yoruba")
 
-        assert lang_info.long_code is "yor"
-        assert lang_info.long_code_alt is None
-        assert lang_info.short_code is "yo"
-        assert lang_info.name is "Yoruba"
+        self.assertEqual(lang_info.long_code, "yor")
+        self.assertIsNone(lang_info.long_code_alt)
+        self.assertEqual(lang_info.short_code, "yo")
+        self.assertEqual(lang_info.name, "Yoruba")
 
     def test_LanguageManager_as_singleton(self):
         """ Tests that a LanguageManager object is a singleton. """
         lang_manager01 = LanguageManager()
         lang_manager02 = LanguageManager()
 
-        assert id(lang_manager01) == id(lang_manager02)
+        self.assertEqual(id(lang_manager01), id(lang_manager02))
 
     def test_LanguageManager_get_all_language_codes(self):
         """ Tests getting all language code as a list. """
@@ -60,8 +60,8 @@ class LanguagesTestCase(unittest.TestCase):
         lang_codes_list = lang_manager.get_all_language_codes()
 
         for code in expecting_codes:
-            assert code in lang_codes_list
-        assert lang_codes_list.index("iku") < lang_codes_list.index("ile")
+            self.assertIn(code, lang_codes_list)
+        self.assertLess(lang_codes_list.index("iku"), lang_codes_list.index("ile"))
 
     def test_LanguageManager_get_language_info(self):
         """ Tests getting information about one language. """
@@ -69,12 +69,12 @@ class LanguagesTestCase(unittest.TestCase):
 
         result_lang = lang_manager.get_language_info("zun")
 
-        assert result_lang.long_code == "zun"
-        assert result_lang.name == "Zuni"
+        self.assertEqual(result_lang.long_code, "zun")
+        self.assertEqual(result_lang.name, "Zuni")
 
         result_lang = lang_manager.get_language_info("DUMMY")
 
-        assert result_lang is None
+        self.assertIsNone(result_lang)
 
 if __name__ == "__main__":
     unittest.main()
