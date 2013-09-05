@@ -66,10 +66,8 @@ class LanguageInfo(object):
         self.name = name
 
     def __repr__(self):
-        return (
-            "<LanguageInfo('%s', '%s', '%s', '%s')>" %
-            (self.long_code, self.long_code_alt, self.short_code, self.name)
-        )
+        return "<LanguageInfo('{}', '{}', '{}', '{}')>".format(
+            self.long_code, self.long_code_alt, self.short_code, self.name)
 
 
 # ------------------------------------------------------------------------------
