@@ -14,6 +14,8 @@
 import sys
 import os
 import argparse
+import glob
+import mimetypes
 
 import util
 import server
@@ -23,14 +25,97 @@ __version__ = util.get_version_from_git()
 
 # Gets execution directory
 exe_dir = util.get_exe_dir()
+
 # Sets environment variable for the application
 os.environ['SUBLIME_HOME'] = exe_dir
+
 # Gets a logger
 LOG = util.init_logging()
+
+# List of subtitles extensions
+SUBTITLE_EXTENSIONS = (
+    "aqt", "jss", "sub", "ttxt",
+    "pjs", "psb", "rt", "smi",
+    "ssf", "srt", "gsub", "ssa",
+    "ass", "usf", "txt"
+)
+
+# Dictionnary of videos for which subtitles need to be found
+subtitles_to_find = {}
+
+
+def execute(args):
+    """ Executes SubLime with given arguments. """
+    movie_filenames = []
+
+    # List of filenames directly given by user
+    if args.movie_files:
+        movie_filenames = args.movie_files
+    # Or list of filenames by walking through directories
+    elif args.directories:
+        mimetypes.init()
+
+        for movie_dir in args.directories:
+            for root, _, files in os.walk(movie_dir):
+                for name in files:
+                    movie_filename = os.path.join(root, name)
+                    mtype, _ = mimetypes.guess_type(movie_filename, strict=False)
+
+                    if mtype.startswith('video'):
+                        movie_filenames.append(movie_filename)
+
+    # Informs user that there is already existing subtitles
+    for movie_filename in movie_filenames:
+        excluded_language_codes = []
+        basename, _ = os.path.splitext(movie_filename)
+        for ext in SUBTITLE_EXTENSIONS:
+            search_subtitle_filename = "{}.*.{}".format(basename, ext)
+            existing_subtitles = glob.glob(search_subtitle_filename)
+
+            if existing_subtitles:
+                LOG.debug("Existing subtitles: {}".format(existing_subtitles.join(", ")))
+                if not args.force:
+                    LOG.warning('File {} already has a subtitle " + \
+                        "and nothing will happen for it! " + \
+                        "Use option "-f --force" to replace.'.format(movie_filename))
+                    # TODO
+                    for subtitle in existing_subtitles:
+                        excluded_language_codes.append()
+                else:
+                    LOG.warning('Replacing {} subtitle.'.format(movie_filename))
+
+        # Adds movie filename with languages to search in dictionnary
+        language_codes_to_search = [code for code in args.languages
+            if code not in excluded_language_codes]
+        subtitles_to_find.setdefault(movie_filename, []).extend(language_codes_to_search)
+
+
+def _file_exists(movie_file):
+    """ Checks if given movie file exists. """
+    msg = "The movie file {} doesn't exist.".format(movie_file)
+
+    return _exists(movie_file, msg)
+
+
+def _directory_exists(movie_directory):
+    """ Checks if given movie directory exists. """
+    msg = "The movie directory {} doesn't exist.".format(movie_directory)
+
+    return _exists(movie_directory, msg)
+
+
+def _exists(location, error_message):
+    """ Checks if given location exists. """
+    if not os.path.exists(location):
+        raise argparse.ArgumentTypeError(error_message)
+
+    return location
 
 
 def run():
     """ Main command-line execution loop. """
+    LOG.info("Welcome to SubLime !")
+
     # Languages
     language_manager = subtitle.LanguageManager()
     language_codes = language_manager.get_all_language_codes()
@@ -49,8 +134,20 @@ def run():
 
     parser.add_argument('--version', action='version',
         version=sublime_version)
-    parser.add_argument('movie_files', action='append',
-        help='List of movie files.', metavar='FILES')
+
+    # Arguments to select video which need subtitles
+    files_group = parser.add_mutually_exclusive_group(required=True)
+    files_group.add_argument('-m', '--movie', action='append',
+        help='List of movie files.', type=_file_exists,
+        dest='movie_files', metavar='FILES')
+    files_group.add_argument('-d', '--directory', action='append',
+        help='List of directories containing movie files (recursive search).',
+        type=_directory_exists, dest='directories', metavar="DIRECTORY")
+    files_group.add_argument('-w', '--watch', action='append',
+        help='Watch a list of directories and download a subtitle when a new movie appears.',
+        type=_directory_exists, dest='watched_directories', metavar="DIRECTORY")
+
+    # Optional arguments
     parser.add_argument('-l', '--language', action='append',
         default=default_languages, help='Set languages to filter.',
         dest='languages', choices=language_codes, metavar="LANGUAGE CODE")
@@ -64,6 +161,7 @@ def run():
     # Parse the arguments line
     try:
         args = parser.parse_args()
+        execute(args)
     except Exception as error:
         LOG.exception(error)
         sys.exit(2)
