@@ -15,7 +15,7 @@ import logging
 import os
 import csv
 
-import util
+from sublime import util
 
 # Logger
 LOG = logging.getLogger("sublime.subtitle")

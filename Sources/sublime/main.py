@@ -17,9 +17,9 @@ import argparse
 import glob
 import mimetypes
 
-import util
-import server
-import subtitle
+from sublime import util
+from sublime import server
+from sublime import subtitle
 
 __version__ = util.get_version_from_git()
 
