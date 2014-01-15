@@ -3,3 +3,5 @@ __pycache__/
 logs/
 nose-1.3.0-py3.3.egg/
 virtualenv/
+setuptools-*
+Sources/SubLime.egg-info/*
