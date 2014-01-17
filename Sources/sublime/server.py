@@ -106,6 +106,24 @@ class PodnapisiServer(SubtitleServer, metaclass=SubtitleServerType):
 
 # ------------------------------------------------------------------------------
 #
+# Exceptions
+#
+# ------------------------------------------------------------------------------
+class ServerCodeError(Exception):
+    """ Exception raised if a server code doesn't exist.
+
+    Attributes:
+        server_code -- server code that doesn't exist """
+
+    def __init__(self, server_code):
+        self.server_code = server_code
+
+    def __str__(self):
+        return "Server code {} does not exist.".format(self.server_code)
+
+
+# ------------------------------------------------------------------------------
+#
 # Module methods
 #
 # ------------------------------------------------------------------------------
@@ -136,7 +154,12 @@ def get_server_info(server_code):
     server_infos = dict([(server.code, server)
         for server in _all_subtitle_servers_instance])
 
-    return server_infos.get(server_code, None)
+    server_info = server_infos.get(server_code, None)
+
+    if server_info is None:
+        raise ServerCodeError(server_code)
+
+    return server_info
 
 
 

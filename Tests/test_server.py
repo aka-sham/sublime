@@ -15,6 +15,7 @@ import unittest
 
 from sublime.server import get_server_codes
 from sublime.server import get_server_info
+from sublime.server import ServerCodeError
 
 
 # ------------------------------------------------------------------------------
@@ -36,6 +37,13 @@ class ServerModuleTestCase(unittest.TestCase):
         self.assertEqual(server_infos.code, 'os')
         self.assertEqual(server_infos.name, 'OpenSubtitles')
         self.assertEqual(server_infos.address, 'http://www.opensubtitles.org')
+
+        # Tests that raises an Exception
+        wrong_code = "DUMMY"
+        with self.assertRaises(ServerCodeError) as error:
+            get_server_info(wrong_code)
+
+        self.assertEqual(error.exception.server_code, wrong_code)
 
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@ import unittest
 
 from sublime.subtitle import LanguageInfo
 from sublime.subtitle import LanguageManager
+from sublime.subtitle import LanguageCodeError
 
 
 # ------------------------------------------------------------------------------
@@ -72,9 +73,13 @@ class LanguagesTestCase(unittest.TestCase):
         self.assertEqual(result_lang.long_code, "zun")
         self.assertEqual(result_lang.name, "Zuni")
 
-        result_lang = lang_manager.get_language_info("DUMMY")
+        # Tests that raises an Exception
+        wrong_code = "DUMMY"
+        with self.assertRaises(LanguageCodeError) as error:
+            lang_manager.get_language_info(wrong_code)
 
-        self.assertIsNone(result_lang)
+        self.assertEqual(error.exception.language_code, wrong_code)
+
 
 if __name__ == "__main__":
     unittest.main()

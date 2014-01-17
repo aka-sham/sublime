@@ -132,6 +132,30 @@ class LanguageManager(object):
         def get_language_info(self, code):
             """ Gets a LanguageInfo object which contains all
             information about a language. """
-            return self._language_infos.get(code, None)
+
+            language_info = self._language_infos.get(code, None)
+
+            if language_info is None:
+                raise LanguageCodeError(code)
+
+            return language_info
+
+
+# ------------------------------------------------------------------------------
+#
+# Exceptions
+#
+# ------------------------------------------------------------------------------
+class LanguageCodeError(Exception):
+    """ Exception raised if a language code doesn't exist.
+
+    Attributes:
+        language_code -- language code that doesn't exist """
+
+    def __init__(self, language_code):
+        self.language_code = language_code
+
+    def __str__(self):
+        return "Language code {} does not exist.".format(self.language_code)
 
 # EOF
