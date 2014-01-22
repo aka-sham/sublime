@@ -12,7 +12,10 @@
 ##
 
 import unittest
+import os
 
+from sublime.util import get_exe_dir
+from sublime.core import Movie
 from sublime.server import get_server_codes
 from sublime.server import get_server_info
 from sublime.server import ServerCodeError
@@ -62,6 +65,20 @@ class PodnapisiServerTestCase(unittest.TestCase):
         server.connect()
         self.assertTrue(server.connected)
         server.disconnect()
+
+    def test_download_from_Podnapisi(self):
+        """ Tests if it is possible to download a subtitle. """
+        movie_filename = os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'movie.avi')
+        movie = Movie(movie_filename)
+        movie.hash_code = "8fcf0167e19c41be"
+        expected_subtitle_filename = os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'movie.fr.str')
+
+        server = PodnapisiServer()
+        server.connect()
+        server.download_subtitles([movie], ['en'])
+        self.assertTrue(os.path.exists(expected_subtitle_filename))
+        server.disconnect()
+
 
 
 if __name__ == "__main__":
