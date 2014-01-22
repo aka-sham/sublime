@@ -36,7 +36,6 @@ class Movie(object):
         """ Constructor. """
         self.filename = os.path.abspath(movie_filename)
         self.hash_code = generate_hash_code(self.filename)
-        self.subtitles = []
 
 
 # ------------------------------------------------------------------------------
@@ -47,23 +46,19 @@ class Movie(object):
 class Subtitle(object):
     """ Subtitle class manages subtitle files. """
 
-    def __init__(self, server_info, server_data):
+    def __init__(self, unique_id, language_code, movie):
         """ Constructor. """
-        self._server_info = server_info
-        self._server_data = server_data
+        self.id = unique_id
+        self.language = LanguageManager().get_language_info(language_code)
+        self.movie = movie
 
-        self.format = ""
-        self.language = ""
-        self.data = ""
-        self.rating = 0.0
+    def get_filepath(self, extension):
+        """ Get filepath of subtitle file we want to write. """
+        dir_name = os.path.dirname(self.movie.filename)
+        base_name, _ = os.path.splitext(os.path.basename(self.movie.filename))
+        filename = "{}.{}{}".format(base_name, self.language.short_code, extension)
 
-    def get_filename(self, movie_filename):
-        """ """
-        return os.path.splitext(os.path.basename(movie_filename)) + self.format
-
-    def has_data(self):
-        """ """
-        return len(self.data) > 0
+        return os.path.join(dir_name, filename)
 
 
 # ------------------------------------------------------------------------------
@@ -215,8 +210,8 @@ class LanguageCodeError(Exception):
 def generate_hash_code(movie_filename):
     """ Generates Movie Hash code. """
     hash_code = None
-    try:
 
+    try:
         struct_format = 'q'  # long long
         struct_size = struct.calcsize(struct_format)
 
@@ -247,6 +242,7 @@ def generate_hash_code(movie_filename):
         raise MovieSizeError(movie_filename)
     except Exception as error:
         raise MovieHashCodeError(movie_filename, error)
+
 
     return hash_code
 
