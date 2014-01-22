@@ -16,6 +16,8 @@ import unittest
 from sublime.server import get_server_codes
 from sublime.server import get_server_info
 from sublime.server import ServerCodeError
+from sublime.server import PodnapisiServer
+
 
 
 # ------------------------------------------------------------------------------
@@ -44,6 +46,22 @@ class ServerModuleTestCase(unittest.TestCase):
             get_server_info(wrong_code)
 
         self.assertEqual(error.exception.server_code, wrong_code)
+
+
+# ------------------------------------------------------------------------------
+#
+# PodnapisiServerTestCase class
+#
+# ------------------------------------------------------------------------------
+class PodnapisiServerTestCase(unittest.TestCase):
+    """ Tests PodnapisiServer functions. """
+
+    def test_connect_to_Podnapisi(self):
+        """ Tests if it is possible to connect to Podnapisi. """
+        server = PodnapisiServer()
+        server.connect()
+        self.assertTrue(server.connected)
+        server.disconnect()
 
 
 if __name__ == "__main__":
