@@ -17,6 +17,21 @@ import struct
 
 # ------------------------------------------------------------------------------
 #
+# Movie class
+#
+# ------------------------------------------------------------------------------
+class Movie(object):
+    """ Movie class. """
+
+    def __init__(self, movie_filename):
+        """ Constructor. """
+        self.filename = os.path.abspath(movie_filename)
+        self.hash_code = generate_hash_code(self.filename)
+        self.subtitles = []
+
+
+# ------------------------------------------------------------------------------
+#
 # Exceptions
 #
 # ------------------------------------------------------------------------------
