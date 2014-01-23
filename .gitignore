@@ -6,3 +6,5 @@ virtualenv/
 setuptools-*
 Sources/SubLime.egg-info/*
 *.pyc
+
+*.sublime-*
