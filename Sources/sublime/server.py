@@ -15,8 +15,10 @@ import logging
 import shutil
 import urllib.request
 import xmlrpc.client
-import io
-import zipfile
+import zlib
+import base64
+import re
+import itertools
 
 from sublime.core import Subtitle
 
@@ -51,7 +53,7 @@ class SubtitleServerType(type):
 class SubtitleServer(object):
     """ Class to connect to subtitles server and download subtitles. """
 
-    USER_AGENT = "SubLime"
+    USER_AGENT = "OS Test User Agent"
 
     def __init__(self, name, address, code, xmlrpc_uri):
         """ Constructor. """
@@ -81,26 +83,6 @@ class SubtitleServer(object):
         LOG.info("Download subtitles from {}...".format(self.name))
 
         self._execute(self._do_download_subtitles, [movies, languages])
-
-    def status_ok(self, response, status_name="status", ok_code=200):
-        """ Is status returned by server is OK ? """
-        is_ok = False
-        status = response.get(status_name, None)
-
-        if status is not None and status is ok_code:
-            is_ok = True
-
-        return is_ok
-
-    def get_status_reason(self, response, status_dict, status_name="status"):
-        """ Returns explanation for a status returned by server. """
-        reason = "Unknown error"
-        status = response.get(status_name, None)
-
-        if status is not None:
-            reason = status_dict.get(status, reason)
-
-        return reason
 
     def _execute(self, method, args=[]):
         """ Decorates method of SubtitleServer """
@@ -135,6 +117,19 @@ class SubtitleServer(object):
 class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
     """ """
     XMLRPC_URI = "http://api.opensubtitles.org/xml-rpc"
+    DEFAULT_LANGUAGE = "en"
+
+    STATUS_REGEXP = r"(?P<code>\d+) (?P<message>\w+)"
+
+    MOVIE = 0
+    SERIE = 1
+    EPISODE = 2
+
+    MOVIE_KIND = {
+        "movie": MOVIE,
+        "tv series": SERIE,
+        "episode": EPISODE,
+    }
 
     def __init__(self):
         """ Constructor. """
@@ -146,119 +141,123 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
             OpenSubtitlesServer.XMLRPC_URI
         )
 
-
-# ------------------------------------------------------------------------------
-#
-# PodnapisiServer class
-#
-# ------------------------------------------------------------------------------
-class PodnapisiServer(SubtitleServer, metaclass=SubtitleServerType):
-    """ """
-
-    XMLRPC_URI = "http://ssp.podnapisi.net:8000"
-    DOWNLOAD_URI = "http://www.podnapisi.net/static/podnapisi/"
-
-    STATUS_CODE = {
-        200: "Ok",
-        300: "InvalidCredentials",
-        301: "NoAuthorisation",
-        302: "InvalidSession",
-        400: "MovieNotFound",
-        401: "InvalidFormat",
-        402: "InvalidLanguage",
-        403: "InvalidHash",
-        404: "InvalidArchive",
-    }
-
-    def __init__(self):
-        """ Constructor. """
-        SubtitleServer.__init__(
-            self,
-            "Podnapisi",
-            "http://www.podnapisi.net/",
-            "pn",
-            PodnapisiServer.XMLRPC_URI
-        )
+        self._status_regexp = re.compile(OpenSubtitlesServer.STATUS_REGEXP)
 
     def _do_connect(self):
         """ Connect to Server. """
-        # Initiate the connection
-        response = self._proxy.initiate(SubtitleServer.USER_AGENT)
-        self._session_string = response['session']
+        response = self._proxy.LogIn("", "",
+            OpenSubtitlesServer.DEFAULT_LANGUAGE, SubtitleServer.USER_AGENT)
 
-        # Authenticate to the server
-        response = self._proxy.authenticate(self._session_string, "", "")
+        LOG.debug("Connect response: {}".format(response))
+
         if self.status_ok(response):
+            self._session_string = response['token']
             self.connected = True
         else:
-            raise SubtitleServerError(self, get_status_reason(response))
+            raise SubtitleServerError(self, self.get_status_reason(response))
 
     def _do_disconnect(self):
         """ Disconnect from Server. """
-        self._proxy("close")()
+        response = self._proxy.LogOut(self._session_string)
+
+        if self.status_ok(response):
+            self._proxy("close")()
+            self.connected = False
+        else:
+            raise SubtitleServerError(self, self.get_status_reason(response))
 
     def _do_download_subtitles(self, movies, languages):
         """ Download a list of subtitles. """
         movies_hashcode = {movie.hash_code: movie for movie in movies}
         matching_subtitles = {}
+        subtitles_infos = []
 
         # Search subtitles
-        hashcodes = list(movies_hashcode.keys())
-        LOG.debug("Search parameters: SessionKey[{}], Hashcodes[{}]" \
-            .format(self._session_string, hashcodes))
-        response = self._proxy.search(self._session_string, hashcodes)
+        hashcodes_sizes = [{'moviehash': movie.hash_code, 'moviebytesize': movie.size} for movie in movies]
+        response = self._proxy.SearchSubtitles(self._session_string, hashcodes_sizes)
 
-        LOG.debug("Search Response: {}".format(response))
+        #response = self._proxy.CheckMovieHash2(self._session_string, list(movies_hashcode.keys()))
 
-        if self.status_ok(response) and 'results' in response:
-            for hashcode, subtitles in response['results'].items():
-                # Current movie
-                movie = movies_hashcode[hashcode]
-                # List of subtitles ID matching conditions
-                matching_subtitles.update({
-                    subtitle['id']: Subtile(subtitle['id'], subtitle['lang'], movie)
-                        for subtitle in subtitles if subtitle['lang'] in languages
-                            and subtitle['weight'] > 0
-                            and subtitle['inexact'] is False
-                })
+        if self.status_ok(response):
+            if 'data' in response and response['data'] != 'False':
+                for data_subtitle in response['data']:
+                    sub_lang = data_subtitle['SubLanguageID']
+                    if sub_lang in languages:
+                        # Subtitle infos
+                        sub_id = data_subtitle['IDSubtitleFile']
+                        sub_rating = float(data_subtitle['SubRating'])
+                        sub_format = data_subtitle['SubFormat']
+
+                        # Movie infos
+                        sub_movie_hashcode = data_subtitle['MovieHash']
+                        sub_movie_kind = data_subtitle['MovieKind']
+                        sub_movie_name = data_subtitle['MovieName']
+                        sub_series_season = data_subtitle['SeriesSeason']
+                        sub_series_episode = data_subtitle['SeriesEpisode']
+                        sub_movie = movies_hashcode[sub_movie_hashcode]
+
+                        # Update movie information
+                        sub_movie.name = sub_movie_name
+                        sub_movie.season = sub_series_season
+                        sub_movie.episode = sub_series_episode
+                        sub_movie.episode_name = sub_movie_name
+
+                        subtitle = Subtitle(sub_id, sub_lang, sub_movie, sub_rating, sub_format)
+                        subtitles_infos.append(subtitle)
+            else:
+                raise SubtitleServerError(self, "There is no result when searching for subtitles.")
         else:
             raise SubtitleServerError(self, self.get_status_reason(response))
 
-        LOG.debug("Matching subtitles: {}".format(matching_subtitles))
+        # Clean up list of subtitles by taking highest rating per language
+        subtitles_infos.sort()
+        for _, group in itertools.groupby(subtitles_infos):
+            best_subtitle = max(list(group))
+            matching_subtitles[best_subtitle.id] = best_subtitle
 
         # Download Subtitles
         subtitles_id = list(matching_subtitles.keys())
-        response = self._proxy.download(self._session_string, subtitles_id)
+        response = self._proxy.DownloadSubtitles(self._session_string, subtitles_id)
 
-        if self.status_ok(response) and 'names' in response:
-            for subtitle_id, zip_filename in response['names'].items():
-                download_url = PodnapisiServer.DOWNLOAD_URI + zip_filename
-                # Open URL
-                with urllib.request.urlopen(download_url) as response:
-                    # Read zip file on the fly
-                    with zipfile.ZipFile(io.StringIO(response.read())) as uncompressed:
-                        files_info = uncompressed.infolist()
-                        # Get info/filename directly from zip
-                        if len(files_info):
-                            filename_to_extract = files_info[0].filename
-                            _, extension = os.path.splitext(filename_to_extract)
-                            # Extract data
-                            data = uncompressed.read(filename_to_extract)
-                            new_name = matching_subtitles[subtitle_id].get_filepath(extension)
-                            with open(new_name, 'wb') as out_file:
-                                out_file.write(data)
-
+        if self.status_ok(response):
+            if 'data' in response and response['data'] != 'False':
+                for encoded_file in response['data']:
+                    subtitle_id = encoded_file['idsubtitlefile']
+                    decoded_file = base64.standard_b64decode(encoded_file['data'])
+                    file_data = zlib.decompress(decoded_file, 47)
+                    new_name = matching_subtitles[subtitle_id].filepath
+                    with open(new_name, 'wb') as out_file:
+                        out_file.write(file_data)
+            else:
+                raise SubtitleServerError(self, "There is no result when downloading subtitles.")
         else:
             raise SubtitleServerError(self, self.get_status_reason(response))
 
-
     def status_ok(self, response):
         """ Is status returned by server is OK ? """
-        return SubtitleServer.status_ok(self, response)
+        is_ok = False
+        status = response.get("status", None)
+
+        if status is not None:
+            match_result = re.match(self._status_regexp, status)
+            code = int(match_result.group("code"))
+
+            if code is 200:
+                is_ok = True
+
+        return is_ok
 
     def get_status_reason(self, response):
         """ Returns explanation for a status returned by server. """
-        return SubtitleServer.get_status_reason(self, response, PodnapisiServer.STATUS_CODE)
+        reason = "Unknown error"
+        status = response.get("status", None)
+
+        if status is not None:
+            match_result = re.match(self._status_regexp, status)
+            code = int(match_result.group("code"))
+            reason = match_result.group("message")
+
+        return reason
 
 
 # ------------------------------------------------------------------------------

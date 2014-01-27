@@ -36,6 +36,14 @@ class Movie(object):
         """ Constructor. """
         self.filename = os.path.abspath(movie_filename)
         self.hash_code = generate_hash_code(self.filename)
+        self.size = str(os.path.getsize(self.filename))
+
+    def __eq__(self, other):
+        return self.hash_code == other.hash_code
+
+    def __repr__(self):
+        return "<Movie('{}', '{}', '{}', '{}')>".format(
+            self.filename, self.hash_code, self.size)
 
 
 # ------------------------------------------------------------------------------
@@ -46,19 +54,37 @@ class Movie(object):
 class Subtitle(object):
     """ Subtitle class manages subtitle files. """
 
-    def __init__(self, unique_id, language_code, movie):
+    def __init__(self, unique_id, language_code,
+        movie, rating=0, extension=None):
         """ Constructor. """
         self.id = unique_id
         self.language = LanguageManager().get_language_info(language_code)
         self.movie = movie
+        self.rating = rating
+        self.extension = extension
 
-    def get_filepath(self, extension):
+    @property
+    def filepath(self):
         """ Get filepath of subtitle file we want to write. """
         dir_name = os.path.dirname(self.movie.filename)
         base_name, _ = os.path.splitext(os.path.basename(self.movie.filename))
-        filename = "{}.{}{}".format(base_name, self.language.short_code, extension)
+        filename = "{}.{}.{}".format(base_name, self.language.short_code, self.extension)
 
         return os.path.join(dir_name, filename)
+
+    def __eq__(self, other):
+        return (self.language == other.language
+            and self.movie == other.movie)
+
+    def __lt__(self, other):
+        return (self == other and self.rating < other.rating)
+
+    def __gt__(self, other):
+        return (self == other and self.rating > other.rating)
+
+    def __repr__(self):
+        return "<Subtitle('{}', '{}', '{}', '{}')>".format(
+            self.id, self.language.long_code, self.rating, self.extension)
 
 
 # ------------------------------------------------------------------------------
@@ -75,6 +101,9 @@ class LanguageInfo(object):
         self.long_code_alt = long_code_alt
         self.short_code = short_code
         self.name = name
+
+    def __eq__(self, other):
+        return self.long_code == other.long_code
 
     def __repr__(self):
         return "<LanguageInfo('{}', '{}', '{}', '{}')>".format(
