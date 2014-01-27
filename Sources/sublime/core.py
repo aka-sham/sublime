@@ -13,6 +13,7 @@
 
 import logging
 import os
+import shutil
 import struct
 import csv
 
@@ -32,18 +33,57 @@ exe_dir = util.get_exe_dir()
 class Movie(object):
     """ Movie class. """
 
+    MOVIE = 0
+    SERIE = 1
+
     def __init__(self, movie_filename):
         """ Constructor. """
         self.filename = os.path.abspath(movie_filename)
         self.hash_code = generate_hash_code(self.filename)
         self.size = str(os.path.getsize(self.filename))
 
+        self.kind = Movie.MOVIE
+        self.name = "UNKNOWN MOVIE"
+        self.season = None
+        self.episode = None
+        self.episode_name = "UNKNOWN EPISODE"
+
+    def rename(self):
+        """ Rename movie to a cleaner name. """
+        dir_name = os.path.dirname(self.filename)
+        _, extension = os.path.splitext(os.path.basename(self.filename))
+
+        if self.kind is Movie.MOVIE:
+            new_name = "{}{}".format(self.name.replace(" ", "_"), extension)
+        else:
+            new_name = "{}_S{:02d}E{:02d}_{}{}".format(self.name.replace(" ", "_"),
+                self.season, self.episode,
+                self.episode_name.replace(" ", "_"), extension)
+
+        new_filename = os.path.join(dir_name, new_name)
+
+        try:
+            shutil.move(self.filename, new_filename)
+        except Exception as error:
+            LOG.error("Cannot rename the file {}.".format(self.filename))
+        else:
+            self.filename = new_filename
+
+        return self.filename
+
     def __eq__(self, other):
         return self.hash_code == other.hash_code
 
     def __repr__(self):
-        return "<Movie('{}', '{}', '{}', '{}')>".format(
-            self.filename, self.hash_code, self.size)
+        if self.kind is Movie.MOVIE:
+            description = "<Movie('{}', '{}', '{}', '{}', '{}')>".format(
+                self.filename, self.hash_code, self.size, self.name)
+        else:
+            description = "<Movie('{}', '{}', '{}', '{}', '{}', '{}', '{}')>".format(
+                self.filename, self.hash_code, self.size, self.name,
+                self.season, self.episode, self.episode_name)
+
+        return description
 
 
 # ------------------------------------------------------------------------------
