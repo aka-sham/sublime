@@ -121,6 +121,7 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
     DEFAULT_LANGUAGE = "en"
 
     STATUS_REGEXP = r"(?P<code>\d+) (?P<message>\w+)"
+    SERIES_REGEXP = r'^"(?P<serie_name>.*)" (?P<episode_name>.*)$'
 
     MOVIE = "movie"
     SERIE = "tv series"
@@ -137,6 +138,7 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
         )
 
         self._status_regexp = re.compile(OpenSubtitlesServer.STATUS_REGEXP)
+        self._series_regexp = re.compile(OpenSubtitlesServer.SERIES_REGEXP)
 
     def _do_connect(self):
         """ Connect to Server. """
@@ -170,7 +172,6 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
         # Search subtitles
         hashcodes_sizes = [{'moviehash': movie.hash_code, 'moviebytesize': movie.size} for movie in movies]
         response = self._proxy.SearchSubtitles(self._session_string, hashcodes_sizes)
-        extra_infos = self._proxy.CheckMovieHash2(self._session_string, list(movies_hashcode.keys()))
 
         if self.status_ok(response):
             if 'data' in response and response['data'] != 'False':
@@ -192,21 +193,14 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
                         if sub_movie_kind == OpenSubtitlesServer.MOVIE:
                             sub_movie.name = sub_movie_name
                         else:
+                            # Retrieves serie name and episode name
+                            match_result = re.match(self._series_regexp, sub_movie_name)
+                            sub_movie.name = match_result.group("serie_name")
+                            sub_movie.episode_name = match_result.group("episode_name")
+
                             sub_movie.kind = Movie.SERIE
                             sub_movie.season = int(data_subtitle['SeriesSeason'])
                             sub_movie.episode = int(data_subtitle['SeriesEpisode'])
-                            sub_movie.episode_name = sub_movie_name
-
-                            if self.status_ok(extra_infos):
-                                if 'data' in extra_infos and extra_infos['data'] != 'False':
-                                    for info in extra_infos['data'][sub_movie_hashcode]:
-                                        if info['MovieKind'] == OpenSubtitlesServer.SERIE:
-                                            sub_movie.name = info['MovieName']
-                                            break
-                                else:
-                                    raise SubtitleServerError(self, "There is no extra info when searching for subtitles.")
-                            else:
-                                raise SubtitleServerError(self, self.get_status_reason(extra_infos))
 
                         subtitle = Subtitle(sub_id, sub_lang, sub_movie, sub_rating, sub_format)
                         subtitles_infos.append(subtitle)

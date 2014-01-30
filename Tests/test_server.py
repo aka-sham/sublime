@@ -67,11 +67,11 @@ class OpenSubtitlesServerTestCase(unittest.TestCase):
             os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'movie.en.srt')
 
         self.expected_renamed_movie_filename = os.path.join(get_exe_dir(), 'Tests', 'Fixtures',
-            'Louie_S01E01_"Louie"_Pilot.avi')
+            'Louie_S01E01_Pilot.avi')
         self.expected_renamed_french_subtitle_filename = \
-            os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'Louie_S01E01_"Louie"_Pilot.fr.srt')
+            os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'Louie_S01E01_Pilot.fr.srt')
         self.expected_renamed_english_subtitle_filename = \
-            os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'Louie_S01E01_"Louie"_Pilot.en.srt')
+            os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'Louie_S01E01_Pilot.en.srt')
 
     def test_connect_to_OpenSubtitles(self):
         """ Tests if it is possible to connect to OpenSubtitles. """
