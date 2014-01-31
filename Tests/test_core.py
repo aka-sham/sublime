@@ -33,25 +33,25 @@ class VideoModuleTestCase(unittest.TestCase):
 
     def test_generate_hash_code(self):
         """ Tests that generate_hash_code generates a correct hash code. """
-        video_filename = os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'hashcode.txt')
+        video_filepath = os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'hashcode.txt')
         expected_hash = "13fb1d63375cf197"
-        result_hash = generate_hash_code(video_filename)
+        result_hash = generate_hash_code(video_filepath)
 
         self.assertEqual(result_hash, expected_hash)
 
         # Test exception file too small
-        video_filename = os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'hashcode_small.txt')
+        video_filepath = os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'hashcode_small.txt')
         with self.assertRaises(VideoSizeError) as error:
-            generate_hash_code(video_filename)
+            generate_hash_code(video_filepath)
 
-        self.assertEqual(error.exception.video_filename, video_filename)
+        self.assertEqual(error.exception.video_filepath, video_filepath)
 
         # Test exception file does not exist
-        video_filename = os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'DUMMY')
+        video_filepath = os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'DUMMY')
         with self.assertRaises(VideoHashCodeError) as error:
-            generate_hash_code(video_filename)
+            generate_hash_code(video_filepath)
 
-        self.assertEqual(error.exception.video_filename, video_filename)
+        self.assertEqual(error.exception.video_filepath, video_filepath)
         self.assertIsNotNone(error.exception.error)
 
 

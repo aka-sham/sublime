@@ -16,6 +16,7 @@ import os
 import shutil
 import struct
 import csv
+import guessit
 
 from sublime import util
 
@@ -33,9 +34,9 @@ exe_dir = util.get_exe_dir()
 class Video(object):
     """ Video class. """
 
-    def __init__(self, video_filename):
+    def __init__(self, video_filepath):
         """ Constructor. """
-        self.filename = os.path.abspath(video_filename)
+        self.filename = os.path.abspath(video_filepath)
         self.hash_code = generate_hash_code(self.filename)
         self.size = str(os.path.getsize(self.filename))
 
@@ -73,9 +74,9 @@ class Video(object):
 class Movie(Video):
     """ Movie class. """
 
-    def __init__(self, video_filename):
+    def __init__(self, video_filepath):
         """ Constructor. """
-        Video.__init__(self, video_filename)
+        Video.__init__(self, video_filepath)
 
         self.name = "UNKNOWN MOVIE"
 
@@ -85,10 +86,6 @@ class Movie(Video):
         Video._move(self, new_name)
 
         return self.filename
-
-    @staticmethod
-    def make_movie(video):
-        return Movie(video.filename)
 
     def __repr__(self):
         return "<Movie('{}', '{}', '{}', '{}', '{}')>".format(
@@ -103,9 +100,9 @@ class Movie(Video):
 class Episode(object):
     """ Episode class. """
 
-    def __init__(self, video_filename):
+    def __init__(self, video_filepath):
         """ Constructor. """
-        Video.__init__(self, video_filename)
+        Video.__init__(self, video_filepath)
 
         self.name = "UNKNOWN SERIE"
         self.season = "0"
@@ -121,15 +118,46 @@ class Episode(object):
 
         return self.filename
 
-    @staticmethod
-    def make_episode(video):
-        return Episode(video.filename)
-
     def __repr__(self):
         return "<Episode('{}', '{}', '{}', '{}', '{}', '{}', '{}')>".format(
             self.filename, self.hash_code, self.size, self.name,
             self.season, self.episode, self.episode_name)
 
+
+# ------------------------------------------------------------------------------
+#
+# VideoFactory class
+#
+# ------------------------------------------------------------------------------
+class VideoFactory(object):
+    """ VideoFactory class which creates Video instances. """
+
+    @staticmethod
+    def make_from_filename(video_filepath):
+        """ Returns a Movie or an Episode instance if it is possible,
+        else returns a Video instance. """
+        video = None
+        guess = guessit.guess_movie_info(video_filepath, info = ['filename'])
+
+        if guess['type'] == 'movie':
+            video = Movie(video_filepath)
+        elif guess['type'] == 'episode':
+            video = Episode(video_filepath)
+        else:
+            video = Video(video_filepath)
+
+        return video
+
+    @staticmethod
+    def make_from_type(video, video_type):
+        """ Transforms a video into a Movie or Episode
+        depending on video_type. """
+        if not isinstance(video, (Movie, Episode)):
+            new_video = video_type(video.filename)
+        else:
+            new_video = video
+
+        return new_video
 
 # ------------------------------------------------------------------------------
 #
@@ -278,29 +306,29 @@ class VideoSizeError(VideoError):
     """ Exception raised if the size of a movie file is too small.
 
     Attributes:
-        video_filename -- name of movie file """
+        video_filepath -- path of video file """
 
-    def __init__(self, video_filename):
-        self.video_filename = video_filename
+    def __init__(self, video_filepath):
+        self.video_filepath = video_filepath
 
     def __str__(self):
-        return "Size of movie file called {} is too small.".format(self.video_filename)
+        return "Size of movie file called {} is too small.".format(self.video_filepath)
 
 
 class VideoHashCodeError(VideoError):
     """ Exception raised if there is an error during hash code generation.
 
     Attributes:
-        video_filename -- name of movie file
+        video_filepath -- path of video file
         error -- error raised during hash code generation. """
 
-    def __init__(self, video_filename, error):
-        self.video_filename = video_filename
+    def __init__(self, video_filepath, error):
+        self.video_filepath = video_filepath
         self.error = error
 
     def __str__(self):
         return "Error during hash code generation for movie file called {}: {}." \
-            .format(self.video_filename, self.error)
+            .format(self.video_filepath, self.error)
 
 
 class LanguageCodeError(Exception):
@@ -321,7 +349,7 @@ class LanguageCodeError(Exception):
 # Module methods
 #
 # ------------------------------------------------------------------------------
-def generate_hash_code(video_filename):
+def generate_hash_code(video_filepath):
     """ Generates Movie Hash code. """
     hash_code = None
 
@@ -329,9 +357,9 @@ def generate_hash_code(video_filename):
         struct_format = 'q'  # long long
         struct_size = struct.calcsize(struct_format)
 
-        with open(video_filename, "rb") as movie_file:
+        with open(video_filepath, "rb") as movie_file:
 
-            filesize = os.path.getsize(video_filename)
+            filesize = os.path.getsize(video_filepath)
             movie_hash = filesize
 
             if filesize < 65536 * 2:
@@ -353,9 +381,9 @@ def generate_hash_code(video_filename):
 
             hash_code =  "%016x" % movie_hash
     except VideoError as error:
-        raise VideoSizeError(video_filename)
+        raise VideoSizeError(video_filepath)
     except Exception as error:
-        raise VideoHashCodeError(video_filename, error)
+        raise VideoHashCodeError(video_filepath, error)
 
 
     return hash_code

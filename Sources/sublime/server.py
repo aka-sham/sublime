@@ -23,6 +23,7 @@ import itertools
 from sublime.core import Subtitle
 from sublime.core import Movie
 from sublime.core import Episode
+from sublime.core import VideoFactory
 
 # Logger
 LOG = logging.getLogger("sublime.server")
@@ -186,14 +187,12 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
 
                         sub_video_name = data_subtitle['MovieName']
 
-                        if not isinstance(sub_video, (Movie, Episode)):
-                            sub_video_kind = data_subtitle['MovieKind']
-                            if sub_video_kind == "movie":
-                                sub_video = Movie.make_movie(sub_video)
-                            elif sub_video_kind == "episode":
-                                sub_video = Episode.make_episode(sub_video)
+                        if data_subtitle['MovieKind'] == "movie":
+                            sub_video = VideoFactory.make_from_type(sub_video, Movie)
+                        elif data_subtitle['MovieKind'] == "episode":
+                            sub_video = VideoFactory.make_from_type(sub_video, Episode)
 
-                            videos_hashcode[sub_video_hashcode] = sub_video
+                        videos_hashcode[sub_video_hashcode] = sub_video
 
                         if isinstance(sub_video, Movie):
                             sub_video.name = sub_video_name
