@@ -46,7 +46,6 @@ setup(
         ],
     },
     license="License :: OSI Approved :: BSD License",
-
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
@@ -58,7 +57,7 @@ setup(
         "Topic :: Home Automation",
         "Topic :: Utilities",
     ],
-
+    install_requires=open('requirements.txt').readlines(),
     test_suite='nose.collector',
     tests_require=['nose>=1.3.0'],
 )
