@@ -22,6 +22,7 @@ import itertools
 
 from sublime.core import Subtitle
 from sublime.core import Movie
+from sublime.core import Episode
 
 # Logger
 LOG = logging.getLogger("sublime.server")
@@ -79,11 +80,11 @@ class SubtitleServer(object):
 
         self._execute(self._do_disconnect)
 
-    def download_subtitles(self, movies, languages, rename=False):
+    def download_subtitles(self, videos, languages, rename=False):
         """ Download a list of subtitles. """
         LOG.info("Download subtitles from {}...".format(self.name))
 
-        self._execute(self._do_download_subtitles, [movies, languages, rename])
+        self._execute(self._do_download_subtitles, [videos, languages, rename])
 
     def _execute(self, method, args=[]):
         """ Decorates method of SubtitleServer """
@@ -101,7 +102,7 @@ class SubtitleServer(object):
         """ Disconnect from a subtitles server. """
         raise NotImplementedError("Please Implement this method")
 
-    def _do_download_subtitles(self, movies, languages, rename):
+    def _do_download_subtitles(self, videos, languages, rename):
         """ Download a list of subtitles. """
         raise NotImplementedError("Please Implement this method")
 
@@ -122,10 +123,6 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
 
     STATUS_REGEXP = r"(?P<code>\d+) (?P<message>\w+)"
     SERIES_REGEXP = r'^"(?P<serie_name>.*)" (?P<episode_name>.*)$'
-
-    MOVIE = "movie"
-    SERIE = "tv series"
-    EPISODE = "episode"
 
     def __init__(self):
         """ Constructor. """
@@ -163,14 +160,14 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
         else:
             raise SubtitleServerError(self, self.get_status_reason(response))
 
-    def _do_download_subtitles(self, movies, languages, rename):
+    def _do_download_subtitles(self, videos, languages, rename):
         """ Download a list of subtitles. """
-        movies_hashcode = {movie.hash_code: movie for movie in movies}
+        videos_hashcode = {video.hash_code: video for video in videos}
         matching_subtitles = {}
         subtitles_infos = []
 
         # Search subtitles
-        hashcodes_sizes = [{'moviehash': movie.hash_code, 'moviebytesize': movie.size} for movie in movies]
+        hashcodes_sizes = [{'moviehash': video.hash_code, 'moviebytesize': video.size} for video in videos]
         response = self._proxy.SearchSubtitles(self._session_string, hashcodes_sizes)
 
         if self.status_ok(response):
@@ -183,26 +180,33 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
                         sub_rating = float(data_subtitle['SubRating'])
                         sub_format = data_subtitle['SubFormat']
 
-                        # Movie infos
-                        sub_movie_hashcode = data_subtitle['MovieHash']
-                        sub_movie = movies_hashcode[sub_movie_hashcode]
+                        # Video infos
+                        sub_video_hashcode = data_subtitle['MovieHash']
+                        sub_video = videos_hashcode[sub_video_hashcode]
 
-                        sub_movie_kind = data_subtitle['MovieKind']
-                        sub_movie_name = data_subtitle['MovieName']
+                        sub_video_name = data_subtitle['MovieName']
 
-                        if sub_movie_kind == OpenSubtitlesServer.MOVIE:
-                            sub_movie.name = sub_movie_name
-                        else:
+                        if not isinstance(sub_video, (Movie, Episode)):
+                            sub_video_kind = data_subtitle['MovieKind']
+                            if sub_video_kind == "movie":
+                                sub_video = Movie.make_movie(sub_video)
+                            elif sub_video_kind == "episode":
+                                sub_video = Episode.make_episode(sub_video)
+
+                            videos_hashcode[sub_video_hashcode] = sub_video
+
+                        if isinstance(sub_video, Movie):
+                            sub_video.name = sub_video_name
+                        elif isinstance(sub_video, Episode):
                             # Retrieves serie name and episode name
-                            match_result = re.match(self._series_regexp, sub_movie_name)
-                            sub_movie.name = match_result.group("serie_name")
-                            sub_movie.episode_name = match_result.group("episode_name")
+                            match_result = re.match(self._series_regexp, sub_video_name)
+                            sub_video.name = match_result.group("serie_name")
+                            sub_video.episode_name = match_result.group("episode_name")
 
-                            sub_movie.kind = Movie.SERIE
-                            sub_movie.season = int(data_subtitle['SeriesSeason'])
-                            sub_movie.episode = int(data_subtitle['SeriesEpisode'])
+                            sub_video.season = int(data_subtitle['SeriesSeason'])
+                            sub_video.episode = int(data_subtitle['SeriesEpisode'])
 
-                        subtitle = Subtitle(sub_id, sub_lang, sub_movie, sub_rating, sub_format)
+                        subtitle = Subtitle(sub_id, sub_lang, sub_video, sub_rating, sub_format)
                         subtitles_infos.append(subtitle)
             else:
                 raise SubtitleServerError(self, "There is no result when searching for subtitles.")
@@ -229,7 +233,7 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
                     subtitle = matching_subtitles[subtitle_id]
 
                     if rename:
-                        subtitle.movie.rename()
+                        subtitle.video.rename()
 
                     new_name = subtitle.filepath
                     with open(new_name, 'wb') as out_file:

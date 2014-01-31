@@ -16,7 +16,9 @@ import os
 import shutil
 
 from sublime.util import get_exe_dir
+from sublime.core import Video
 from sublime.core import Movie
+from sublime.core import Episode
 from sublime.server import get_server_codes
 from sublime.server import get_server_info
 from sublime.server import ServerCodeError
@@ -60,13 +62,13 @@ class OpenSubtitlesServerTestCase(unittest.TestCase):
     """ Tests OpenSubtitlesServer functions. """
 
     def setUp(self):
-        self.movie_filename = os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'movie.avi')
+        self.video_filename = os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'movie.avi')
         self.expected_french_subtitle_filename = \
             os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'movie.fr.srt')
         self.expected_english_subtitle_filename = \
             os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'movie.en.srt')
 
-        self.expected_renamed_movie_filename = os.path.join(get_exe_dir(), 'Tests', 'Fixtures',
+        self.expected_renamed_video_filename = os.path.join(get_exe_dir(), 'Tests', 'Fixtures',
             'Louie_S01E01_Pilot.avi')
         self.expected_renamed_french_subtitle_filename = \
             os.path.join(get_exe_dir(), 'Tests', 'Fixtures', 'Louie_S01E01_Pilot.fr.srt')
@@ -83,35 +85,35 @@ class OpenSubtitlesServerTestCase(unittest.TestCase):
 
     def test_download_from_OpenSubtitles(self):
         """ Tests if it is possible to download a subtitle from OpenSubtitles. """
-        movie = Movie(self.movie_filename)
-        movie.hash_code = "8fcf0167e19c41be"
-        movie.size = str(243500836)
+        episode = Video(self.video_filename)
+        episode.hash_code = "8fcf0167e19c41be"
+        episode.size = str(243500836)
 
         server = OpenSubtitlesServer()
         server.connect()
-        server.download_subtitles([movie], ['eng', 'fre'])
+        server.download_subtitles([episode], ['eng', 'fre'])
         self.assertTrue(os.path.exists(self.expected_french_subtitle_filename))
         self.assertTrue(os.path.exists(self.expected_english_subtitle_filename))
         server.disconnect()
 
     def test_download_and_rename_from_OpenSubtitles(self):
         """ Tests if it is possible to download and rename a subtitle from OpenSubtitles. """
-        movie = Movie(self.movie_filename)
-        movie.hash_code = "8fcf0167e19c41be"
-        movie.size = str(243500836)
+        episode = Video(self.video_filename)
+        episode.hash_code = "8fcf0167e19c41be"
+        episode.size = str(243500836)
 
         server = OpenSubtitlesServer()
         server.connect()
-        server.download_subtitles([movie], ['eng', 'fre'], True)
-        self.assertTrue(os.path.exists(self.expected_renamed_movie_filename))
+        server.download_subtitles([episode], ['eng', 'fre'], True)
+        self.assertTrue(os.path.exists(self.expected_renamed_video_filename))
         self.assertTrue(os.path.exists(self.expected_renamed_french_subtitle_filename))
         self.assertTrue(os.path.exists(self.expected_renamed_english_subtitle_filename))
         server.disconnect()
 
     def tearDown(self):
         """ Clean up """
-        if os.path.exists(self.expected_renamed_movie_filename):
-            shutil.move(self.expected_renamed_movie_filename, self.movie_filename)
+        if os.path.exists(self.expected_renamed_video_filename):
+            shutil.move(self.expected_renamed_video_filename, self.video_filename)
 
         if os.path.exists(self.expected_french_subtitle_filename):
             os.remove(self.expected_french_subtitle_filename)

@@ -27,63 +27,108 @@ exe_dir = util.get_exe_dir()
 
 # ------------------------------------------------------------------------------
 #
-# Movie class
+# Video class
 #
 # ------------------------------------------------------------------------------
-class Movie(object):
-    """ Movie class. """
+class Video(object):
+    """ Video class. """
 
-    MOVIE = 0
-    SERIE = 1
-
-    def __init__(self, movie_filename):
+    def __init__(self, video_filename):
         """ Constructor. """
-        self.filename = os.path.abspath(movie_filename)
+        self.filename = os.path.abspath(video_filename)
         self.hash_code = generate_hash_code(self.filename)
         self.size = str(os.path.getsize(self.filename))
 
-        self.kind = Movie.MOVIE
-        self.name = "UNKNOWN MOVIE"
-        self.season = None
-        self.episode = None
-        self.episode_name = "UNKNOWN EPISODE"
-
     def rename(self):
         """ Rename movie to a cleaner name. """
+        raise NotImplementedError("Please Implement this method")
+
+    def _move(self, new_name):
+        """ Move to a new name. """
         dir_name = os.path.dirname(self.filename)
         _, extension = os.path.splitext(os.path.basename(self.filename))
 
-        if self.kind is Movie.MOVIE:
-            new_name = "{}{}".format(self.name.replace(" ", "_"), extension)
-        else:
-            new_name = "{}_S{:02d}E{:02d}_{}{}".format(self.name.replace(" ", "_"),
-                self.season, self.episode,
-                self.episode_name.replace(" ", "_"), extension)
-
-        new_filename = os.path.join(dir_name, new_name)
+        new_filename = os.path.join(dir_name, new_name + extension)
 
         try:
             shutil.move(self.filename, new_filename)
         except Exception as error:
-            LOG.error("Cannot rename the file {}.".format(self.filename))
+            LOG.error("Cannot rename the file {}: {}".format(self.filename, error))
         else:
             self.filename = new_filename
-
-        return self.filename
 
     def __eq__(self, other):
         return self.hash_code == other.hash_code
 
     def __repr__(self):
-        if self.kind is Movie.MOVIE:
-            description = "<Movie('{}', '{}', '{}', '{}', '{}')>".format(
-                self.filename, self.hash_code, self.size, self.name)
-        else:
-            description = "<Movie('{}', '{}', '{}', '{}', '{}', '{}', '{}')>".format(
-                self.filename, self.hash_code, self.size, self.name,
-                self.season, self.episode, self.episode_name)
+        return "<Video('{}', '{}', '{}', '{}')>".format(
+            self.filename, self.hash_code, self.size)
 
-        return description
+
+# ------------------------------------------------------------------------------
+#
+# Movie class
+#
+# ------------------------------------------------------------------------------
+class Movie(Video):
+    """ Movie class. """
+
+    def __init__(self, video_filename):
+        """ Constructor. """
+        Video.__init__(self, video_filename)
+
+        self.name = "UNKNOWN MOVIE"
+
+    def rename(self):
+        """ Rename movie to a cleaner name. """
+        new_name = "{}".format(self.name.replace(" ", "_"))
+        Video._move(self, new_name)
+
+        return self.filename
+
+    @staticmethod
+    def make_movie(video):
+        return Movie(video.filename)
+
+    def __repr__(self):
+        return "<Movie('{}', '{}', '{}', '{}', '{}')>".format(
+            self.filename, self.hash_code, self.size, self.name)
+
+
+# ------------------------------------------------------------------------------
+#
+# Episode class
+#
+# ------------------------------------------------------------------------------
+class Episode(object):
+    """ Episode class. """
+
+    def __init__(self, video_filename):
+        """ Constructor. """
+        Video.__init__(self, video_filename)
+
+        self.name = "UNKNOWN SERIE"
+        self.season = "0"
+        self.episode = "0"
+        self.episode_name = "UNKNOWN EPISODE"
+
+    def rename(self):
+        """ Rename movie to a cleaner name. """
+        new_name = "{}_S{:02d}E{:02d}_{}".format(self.name.replace(" ", "_"),
+            self.season, self.episode,
+            self.episode_name.replace(" ", "_"))
+        Video._move(self, new_name)
+
+        return self.filename
+
+    @staticmethod
+    def make_episode(video):
+        return Episode(video.filename)
+
+    def __repr__(self):
+        return "<Episode('{}', '{}', '{}', '{}', '{}', '{}', '{}')>".format(
+            self.filename, self.hash_code, self.size, self.name,
+            self.season, self.episode, self.episode_name)
 
 
 # ------------------------------------------------------------------------------
@@ -95,26 +140,26 @@ class Subtitle(object):
     """ Subtitle class manages subtitle files. """
 
     def __init__(self, unique_id, language_code,
-        movie, rating=0, extension=None):
+        video, rating=0, extension=None):
         """ Constructor. """
         self.id = unique_id
         self.language = LanguageManager().get_language_info(language_code)
-        self.movie = movie
+        self.video = video
         self.rating = rating
         self.extension = extension
 
     @property
     def filepath(self):
         """ Get filepath of subtitle file we want to write. """
-        dir_name = os.path.dirname(self.movie.filename)
-        base_name, _ = os.path.splitext(os.path.basename(self.movie.filename))
+        dir_name = os.path.dirname(self.video.filename)
+        base_name, _ = os.path.splitext(os.path.basename(self.video.filename))
         filename = "{}.{}.{}".format(base_name, self.language.short_code, self.extension)
 
         return os.path.join(dir_name, filename)
 
     def __eq__(self, other):
         return (self.language == other.language
-            and self.movie == other.movie)
+            and self.video == other.video)
 
     def __lt__(self, other):
         return (self == other and self.rating < other.rating)
@@ -226,36 +271,36 @@ class LanguageManager(object):
 # Exceptions
 #
 # ------------------------------------------------------------------------------
-class MovieError(Exception):
+class VideoError(Exception):
     pass
 
-class MovieSizeError(MovieError):
+class VideoSizeError(VideoError):
     """ Exception raised if the size of a movie file is too small.
 
     Attributes:
-        movie_filename -- name of movie file """
+        video_filename -- name of movie file """
 
-    def __init__(self, movie_filename):
-        self.movie_filename = movie_filename
+    def __init__(self, video_filename):
+        self.video_filename = video_filename
 
     def __str__(self):
-        return "Size of movie file called {} is too small.".format(self.movie_filename)
+        return "Size of movie file called {} is too small.".format(self.video_filename)
 
 
-class MovieHashCodeError(MovieError):
+class VideoHashCodeError(VideoError):
     """ Exception raised if there is an error during hash code generation.
 
     Attributes:
-        movie_filename -- name of movie file
+        video_filename -- name of movie file
         error -- error raised during hash code generation. """
 
-    def __init__(self, movie_filename, error):
-        self.movie_filename = movie_filename
+    def __init__(self, video_filename, error):
+        self.video_filename = video_filename
         self.error = error
 
     def __str__(self):
         return "Error during hash code generation for movie file called {}: {}." \
-            .format(self.movie_filename, self.error)
+            .format(self.video_filename, self.error)
 
 
 class LanguageCodeError(Exception):
@@ -276,7 +321,7 @@ class LanguageCodeError(Exception):
 # Module methods
 #
 # ------------------------------------------------------------------------------
-def generate_hash_code(movie_filename):
+def generate_hash_code(video_filename):
     """ Generates Movie Hash code. """
     hash_code = None
 
@@ -284,13 +329,13 @@ def generate_hash_code(movie_filename):
         struct_format = 'q'  # long long
         struct_size = struct.calcsize(struct_format)
 
-        with open(movie_filename, "rb") as movie_file:
+        with open(video_filename, "rb") as movie_file:
 
-            filesize = os.path.getsize(movie_filename)
+            filesize = os.path.getsize(video_filename)
             movie_hash = filesize
 
             if filesize < 65536 * 2:
-                raise MovieError()
+                raise VideoError()
 
             for x in range(65536//struct_size):
                 buffer = movie_file.read(struct_size)
@@ -307,10 +352,10 @@ def generate_hash_code(movie_filename):
                 movie_hash = movie_hash & 0xFFFFFFFFFFFFFFFF
 
             hash_code =  "%016x" % movie_hash
-    except MovieError as error:
-        raise MovieSizeError(movie_filename)
+    except VideoError as error:
+        raise VideoSizeError(video_filename)
     except Exception as error:
-        raise MovieHashCodeError(movie_filename, error)
+        raise VideoHashCodeError(video_filename, error)
 
 
     return hash_code
