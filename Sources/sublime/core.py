@@ -34,8 +34,10 @@ exe_dir = util.get_exe_dir()
 class Video(object):
     """ Video class. """
 
+    UNDERSCORE = True
+
     def __init__(self, video_filepath):
-        """ Constructor. """
+        """ Initializes instance. """
         self.filename = os.path.abspath(video_filepath)
         self.hash_code = generate_hash_code(self.filename)
         self.size = str(os.path.getsize(self.filename))
@@ -75,14 +77,18 @@ class Movie(Video):
     """ Movie class. """
 
     def __init__(self, video_filepath):
-        """ Constructor. """
+        """ Initializes instance. """
         Video.__init__(self, video_filepath)
 
         self.name = "UNKNOWN MOVIE"
 
     def rename(self):
         """ Rename movie to a cleaner name. """
-        new_name = "{}".format(self.name.replace(" ", "_"))
+        new_name = "{}".format(self.name)
+
+        if Video.UNDERSCORE:
+            new_name = new_name.replace(" ", "_")
+
         Video._move(self, new_name)
 
         return self.filename
@@ -100,20 +106,29 @@ class Movie(Video):
 class Episode(object):
     """ Episode class. """
 
+    RENAME_PATTERN = "{serie_name} S{season:02d}E{episode:02d} {episode_name}"
+
     def __init__(self, video_filepath):
-        """ Constructor. """
+        """ Initializes instance. """
         Video.__init__(self, video_filepath)
 
         self.name = "UNKNOWN SERIE"
-        self.season = "0"
-        self.episode = "0"
+        self.season = 0
+        self.episode = 0
         self.episode_name = "UNKNOWN EPISODE"
 
     def rename(self):
         """ Rename movie to a cleaner name. """
-        new_name = "{}_S{:02d}E{:02d}_{}".format(self.name.replace(" ", "_"),
-            self.season, self.episode,
-            self.episode_name.replace(" ", "_"))
+        new_name = Episode.RENAME_PATTERN.format(
+            serie_name=self.name,
+            season=self.season,
+            episode=self.episode,
+            episode_name=self.episode_name
+        )
+
+        if Video.UNDERSCORE:
+            new_name = new_name.replace(" ", "_")
+
         Video._move(self, new_name)
 
         return self.filename
@@ -122,6 +137,32 @@ class Episode(object):
         return "<Episode('{}', '{}', '{}', '{}', '{}', '{}', '{}')>".format(
             self.filename, self.hash_code, self.size, self.name,
             self.season, self.episode, self.episode_name)
+
+
+# ------------------------------------------------------------------------------
+#
+# NamePattern class as Context Manager
+#
+# ------------------------------------------------------------------------------
+class NamePattern(object):
+    """ Pattern context manager used for renaming video files. """
+
+    def __init__(self, pattern=None, underscore=True):
+        self.default_pattern = Episode.RENAME_PATTERN
+        self.pattern = pattern
+        self.underscore = underscore
+
+    def __enter__(self):
+        if self.pattern:
+            Episode.RENAME_PATTERN = self.pattern
+
+        Video.UNDERSCORE = self.underscore
+
+        return self.pattern
+
+    def __exit__(self, type, value, traceback):
+        Episode.RENAME_PATTERN = self.default_pattern
+        Video.UNDERSCORE = True
 
 
 # ------------------------------------------------------------------------------
@@ -169,7 +210,7 @@ class Subtitle(object):
 
     def __init__(self, unique_id, language_code,
         video, rating=0, extension=None):
-        """ Constructor. """
+        """ Initializes instance. """
         self.id = unique_id
         self.language = LanguageManager().get_language_info(language_code)
         self.video = video
@@ -184,6 +225,11 @@ class Subtitle(object):
         filename = "{}.{}.{}".format(base_name, self.language.short_code, self.extension)
 
         return os.path.join(dir_name, filename)
+
+    def write(self, data):
+        """ Writes Subtitle on disk. """
+        with open(self.filepath, 'wb') as out_file:
+            out_file.write(data)
 
     def __eq__(self, other):
         return (self.language == other.language
@@ -209,7 +255,7 @@ class LanguageInfo(object):
     """ LanguageInfo class which hold information about one language. """
 
     def __init__(self, long_code, long_code_alt, short_code, name):
-        """ Constructor. """
+        """ Initializes instance. """
         self.long_code = long_code
         self.long_code_alt = long_code_alt
         self.short_code = short_code
@@ -254,7 +300,7 @@ class LanguageManager(object):
         """ Inner class for Singleton purpose. """
 
         def __init__(self):
-            """ Constructor. """
+            """ Initializes instance. """
             self._language_codes = []
             self._language_infos = {}
 

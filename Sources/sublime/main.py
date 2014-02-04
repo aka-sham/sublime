@@ -119,7 +119,7 @@ def run():
     # Languages
     language_manager = subtitle.LanguageManager()
     language_codes = language_manager.get_all_language_codes()
-    default_languages = ['en']
+    default_languages = ['en', 'fr']
 
     # Subtitles Servers
     server_codes = server.get_server_codes()
@@ -149,14 +149,17 @@ def run():
 
     # Optional arguments
     parser.add_argument('-l', '--language', action='append',
-        default=default_languages, help='Set languages to filter.',
+        default=default_languages, help='Sets languages to filter.',
         dest='languages', choices=language_codes, metavar="LANGUAGE CODE")
     parser.add_argument('-s', '--server', action='append',
-        default=server_codes, help='Set servers to use.',
+        default=server_codes, help='Sets servers to use.',
         dest='servers', choices=server_codes, metavar="SERVER CODE")
     parser.add_argument('-f', '--force', action='store_true',
-        default=False, help='Replace existing subtitles.',
+        default=False, help='Replaces existing subtitles.',
         dest='force')
+    parser.add_argument('-r', '--rename', action='store_true',
+        default=False, help='Renames video and their subtitles according to a pattern.',
+        dest='rename')
 
     # Parse the arguments line
     try:

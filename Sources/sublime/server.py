@@ -23,6 +23,7 @@ import itertools
 from sublime.core import Subtitle
 from sublime.core import Movie
 from sublime.core import Episode
+from sublime.core import NamePattern as pattern
 from sublime.core import VideoFactory
 
 # Logger
@@ -41,7 +42,7 @@ class SubtitleServerType(type):
     into a dictionary. """
 
     def __init__(cls, name, bases, attrs):
-        """ Metaclass constructor. """
+        """ Metaclass Initializes instance. """
         type.__init__(cls, name, bases, attrs)
         _all_subtitle_servers_class.append(cls)
         LOG.debug("A new SubtitleServer class has been registered: {}"
@@ -59,7 +60,7 @@ class SubtitleServer(object):
     USER_AGENT = "OS Test User Agent"
 
     def __init__(self, name, address, code, xmlrpc_uri):
-        """ Constructor. """
+        """ Initializes instance. """
         self.name = name
         self.address = address
         self.code = code
@@ -81,11 +82,14 @@ class SubtitleServer(object):
 
         self._execute(self._do_disconnect)
 
-    def download_subtitles(self, videos, languages, rename=False):
+    def download_subtitles(self, videos, languages,
+        rename=False, rename_pattern=None, underscore=True):
         """ Download a list of subtitles. """
         LOG.info("Download subtitles from {}...".format(self.name))
 
-        self._execute(self._do_download_subtitles, [videos, languages, rename])
+        with pattern(rename_pattern, underscore):
+            self._execute(self._do_download_subtitles,
+                [videos, languages, rename])
 
     def _execute(self, method, args=[]):
         """ Decorates method of SubtitleServer """
@@ -126,7 +130,7 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
     SERIES_REGEXP = r'^"(?P<serie_name>.*)" (?P<episode_name>.*)$'
 
     def __init__(self):
-        """ Constructor. """
+        """ Initializes instance. """
         SubtitleServer.__init__(
             self,
             "OpenSubtitles",
@@ -234,9 +238,7 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
                     if rename:
                         subtitle.video.rename()
 
-                    new_name = subtitle.filepath
-                    with open(new_name, 'wb') as out_file:
-                        out_file.write(file_data)
+                    subtitle.write(file_data)
             else:
                 raise SubtitleServerError(self, "There is no result when downloading subtitles.")
         else:
