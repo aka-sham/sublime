@@ -3,7 +3,7 @@
 
 ###
 # Project          : SubLime
-# FileName         : sublime.py
+# FileName         : main.py
 # ------------------------------------------------------------------------------
 # Author           : sham
 # E-Mail           : mauricesham@gmail.com
@@ -31,14 +31,6 @@ os.environ['SUBLIME_HOME'] = exe_dir
 
 # Gets a logger
 LOG = util.init_logging()
-
-# List of subtitles extensions
-SUBTITLE_EXTENSIONS = (
-    "aqt", "jss", "sub", "ttxt",
-    "pjs", "psb", "rt", "smi",
-    "ssf", "srt", "gsub", "ssa",
-    "ass", "usf", "txt"
-)
 
 # Dictionnary of videos for which subtitles need to be found
 subtitles_to_find = {}

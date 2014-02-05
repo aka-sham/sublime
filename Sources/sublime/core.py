@@ -3,7 +3,7 @@
 
 ###
 # Project          : SubLime
-# FileName         : movie.py
+# FileName         : core.py
 # ------------------------------------------------------------------------------
 # Author           : sham
 # E-Mail           : mauricesham@gmail.com
@@ -33,6 +33,21 @@ exe_dir = util.get_exe_dir()
 # ------------------------------------------------------------------------------
 class Video(object):
     """ Video class. """
+
+    # List of video extensions
+    EXTENSIONS = (
+        '.3g2','.3gp','.3gp2','.3gpp','.60d','.ajp','.asf',
+        '.asx','.avchd','.avi','.bik','.bix','.box','.cam',
+        '.dat','.divx','.dmf','.dv','.dvr-ms','.evo','flc',
+        '.fli','.flic','.flv','.flx','.gvi','.gvp','.h264',
+        '.m1v','.m2p','.m2ts','.m2v','.m4e','.m4v','.mjp',
+        '.mjpeg','.mjpg','.mkv','.moov','.mov','.movhd',
+        '.movie','.movx','.mp4','.mpe','.mpeg','.mpg','.mpv',
+        '.mpv2','.mxf','.nsv','.nut','.ogg','.ogm','.omf',
+        '.ps','.qt','.ram','.rm','.rmvb','.swf','.ts','.vfw',
+        '.vid','.video','.viv','.vivo','.vob','.vro','.wm',
+        '.wmv','.wmx','.wrap','.wvx','.wx','.x264','.xvid'
+    )
 
     UNDERSCORE = True
 
@@ -207,6 +222,14 @@ class VideoFactory(object):
 # ------------------------------------------------------------------------------
 class Subtitle(object):
     """ Subtitle class manages subtitle files. """
+
+    # List of subtitles extensions
+    EXTENSIONS = (
+        "aqt", "jss", "sub", "ttxt",
+        "pjs", "psb", "rt", "smi",
+        "ssf", "srt", "gsub", "ssa",
+        "ass", "usf", "txt"
+    )
 
     def __init__(self, unique_id, language_code,
         video, rating=0, extension=None):
