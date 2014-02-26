@@ -4,10 +4,10 @@
 ###
 # Project          : SubLime
 # FileName         : main.py
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Author           : sham
 # E-Mail           : mauricesham@gmail.com
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Creation date    : 29/08/2013
 ##
 
@@ -51,7 +51,8 @@ def execute(args):
             for root, _, files in os.walk(movie_dir):
                 for name in files:
                     movie_filename = os.path.join(root, name)
-                    mtype, _ = mimetypes.guess_type(movie_filename, strict=False)
+                    mtype, _ = mimetypes.guess_type(
+                        movie_filename, strict=False)
 
                     if mtype.startswith('video'):
                         movie_filenames.append(movie_filename)
@@ -65,21 +66,27 @@ def execute(args):
             existing_subtitles = glob.glob(search_subtitle_filename)
 
             if existing_subtitles:
-                LOG.debug("Existing subtitles: {}".format(existing_subtitles.join(", ")))
+                LOG.debug("Existing subtitles: {}".format(
+                    existing_subtitles.join(", ")))
                 if not args.force:
                     LOG.warning('File {} already has a subtitle " + \
                         "and nothing will happen for it! " + \
-                        "Use option "-f --force" to replace.'.format(movie_filename))
+                        "Use option "-f --force" to replace.'.format(
+                        movie_filename))
                     # TODO
                     for subtitle in existing_subtitles:
                         excluded_language_codes.append()
                 else:
-                    LOG.warning('Replacing {} subtitle.'.format(movie_filename))
+                    LOG.warning(
+                        'Replacing {} subtitle.'.format(movie_filename))
 
         # Adds movie filename with languages to search in dictionnary
-        language_codes_to_search = [code for code in args.languages
-            if code not in excluded_language_codes]
-        subtitles_to_find.setdefault(movie_filename, []).extend(language_codes_to_search)
+        language_codes_to_search = [
+            code for code in args.languages
+            if code not in excluded_language_codes
+        ]
+        subtitles_to_find.setdefault(movie_filename, []).extend(
+            language_codes_to_search)
 
 
 def _file_exists(movie_file):
@@ -118,39 +125,53 @@ def run():
 
     # create the arguments parser
     parser = argparse.ArgumentParser(
-        description=("SubLime is a command-line program for "  \
-            "searching and downloading the right subtitles for movies."),
+        description=(
+            "SubLime is a command-line program for searching "
+            "and downloading the right subtitles for movies."
+        ),
         prog='SubLime')
 
     sublime_version = '%(prog)s v' + __version__
 
-    parser.add_argument('--version', action='version',
+    parser.add_argument(
+        '--version', action='version',
         version=sublime_version)
 
     # Arguments to select video which need subtitles
     files_group = parser.add_mutually_exclusive_group(required=True)
-    files_group.add_argument('-m', '--movie', action='append',
+    files_group.add_argument(
+        '-m', '--movie', action='append',
         help='List of movie files.', type=_file_exists,
         dest='movie_files', metavar='FILES')
-    files_group.add_argument('-d', '--directory', action='append',
+    files_group.add_argument(
+        '-d', '--directory', action='append',
         help='List of directories containing movie files (recursive search).',
         type=_directory_exists, dest='directories', metavar="DIRECTORY")
-    files_group.add_argument('-w', '--watch', action='append',
-        help='Watch a list of directories and download a subtitle when a new movie appears.',
-        type=_directory_exists, dest='watched_directories', metavar="DIRECTORY")
+    files_group.add_argument(
+        '-w', '--watch', action='append',
+        help=(
+            'Watch a list of directories and download '
+            'a subtitle when a new movie appears.'),
+        type=_directory_exists,
+        dest='watched_directories', metavar="DIRECTORY")
 
     # Optional arguments
-    parser.add_argument('-l', '--language', action='append',
+    parser.add_argument(
+        '-l', '--language', action='append',
         default=default_languages, help='Sets languages to filter.',
         dest='languages', choices=language_codes, metavar="LANGUAGE CODE")
-    parser.add_argument('-s', '--server', action='append',
+    parser.add_argument(
+        '-s', '--server', action='append',
         default=server_codes, help='Sets servers to use.',
         dest='servers', choices=server_codes, metavar="SERVER CODE")
-    parser.add_argument('-f', '--force', action='store_true',
+    parser.add_argument(
+        '-f', '--force', action='store_true',
         default=False, help='Replaces existing subtitles.',
         dest='force')
-    parser.add_argument('-r', '--rename', action='store_true',
-        default=False, help='Renames video and their subtitles according to a pattern.',
+    parser.add_argument(
+        '-r', '--rename', action='store_true',
+        default=False,
+        help='Renames video and their subtitles according to a pattern.',
         dest='rename')
 
     # Parse the arguments line

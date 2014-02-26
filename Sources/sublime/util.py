@@ -4,10 +4,10 @@
 ###
 # Project          : SubLime
 # FileName         : utils.py
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Author           : sham
 # E-Mail           : mauricesham@gmail.com
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Creation date    : 29/08/2013
 ##
 
@@ -58,7 +58,8 @@ def get_version_from_git():
     from Git repository. """
     verstr = "Unknow"
     try:
-        verstr = system('git', 'describe', '--abbrev=0').strip().decode("utf-8")
+        verstr = system(
+            'git', 'describe', '--abbrev=0').strip().decode("utf-8")
     except Exception as error:
         print("Cannot find the version number of SubLime. Error: %s" % error)
 

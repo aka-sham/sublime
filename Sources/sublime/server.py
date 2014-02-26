@@ -4,10 +4,10 @@
 ###
 # Project          : SubLime
 # FileName         : server.py
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Author           : sham
 # E-Mail           : mauricesham@gmail.com
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Creation date    : 30/08/2013
 ##
 
@@ -30,12 +30,13 @@ from sublime.core import VideoFactory
 LOG = logging.getLogger("sublime.server")
 
 
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # SubtitleServerType class
 #
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 _all_subtitle_servers_class = []
+
 
 class SubtitleServerType(type):
     """ Metaclass SubtitleServerType to store all SubtitleServers
@@ -45,15 +46,15 @@ class SubtitleServerType(type):
         """ Metaclass Initializes instance. """
         type.__init__(cls, name, bases, attrs)
         _all_subtitle_servers_class.append(cls)
-        LOG.debug("A new SubtitleServer class has been registered: {}"
-            .format(name))
+        LOG.debug(
+            "A new SubtitleServer class has been registered: {}".format(name))
 
 
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # SubtitleServer class
 #
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 class SubtitleServer(object):
     """ Class to connect to subtitles server and download subtitles. """
 
@@ -82,13 +83,15 @@ class SubtitleServer(object):
 
         self._execute(self._do_disconnect)
 
-    def download_subtitles(self, videos, languages,
-        rename=False, rename_pattern=None, underscore=True):
+    def download_subtitles(
+            self, videos, languages,
+            rename=False, rename_pattern=None, underscore=True):
         """ Download a list of subtitles. """
         LOG.info("Download subtitles from {}...".format(self.name))
 
         with pattern(rename_pattern, underscore):
-            self._execute(self._do_download_subtitles,
+            self._execute(
+                self._do_download_subtitles,
                 [videos, languages, rename])
 
     def _execute(self, method, args=[]):
@@ -96,7 +99,8 @@ class SubtitleServer(object):
         try:
             method(*args)
         except xmlrpc.client.Fault as error:
-            LOG.error("A fault occurred.\nFault code: {}\nFault string: {}" \
+            LOG.error(
+                "A fault occurred.\nFault code: {}\nFault string: {}"
                 .format(error.faultCode, error.faultString))
 
     def _do_connect(self):
@@ -116,11 +120,11 @@ class SubtitleServer(object):
             self.code, self.name, self.address)
 
 
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # OpenSubtitlesServer class
 #
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
     """ """
     XMLRPC_URI = "http://api.opensubtitles.org/xml-rpc"
@@ -144,7 +148,8 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
 
     def _do_connect(self):
         """ Connect to Server. """
-        response = self._proxy.LogIn("", "",
+        response = self._proxy.LogIn(
+            "", "",
             OpenSubtitlesServer.DEFAULT_LANGUAGE, SubtitleServer.USER_AGENT)
 
         LOG.debug("Connect response: {}".format(response))
@@ -172,8 +177,12 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
         subtitles_infos = []
 
         # Search subtitles
-        hashcodes_sizes = [{'moviehash': video.hash_code, 'moviebytesize': video.size} for video in videos]
-        response = self._proxy.SearchSubtitles(self._session_string, hashcodes_sizes)
+        hashcodes_sizes = [
+            {'moviehash': video.hash_code, 'moviebytesize': video.size}
+            for video in videos
+        ]
+        response = self._proxy.SearchSubtitles(
+            self._session_string, hashcodes_sizes)
 
         if self.status_ok(response):
             if 'data' in response and response['data'] != 'False':
@@ -192,9 +201,11 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
                         sub_video_name = data_subtitle['MovieName']
 
                         if data_subtitle['MovieKind'] == "movie":
-                            sub_video = VideoFactory.make_from_type(sub_video, Movie)
+                            sub_video = VideoFactory.make_from_type(
+                                sub_video, Movie)
                         elif data_subtitle['MovieKind'] == "episode":
-                            sub_video = VideoFactory.make_from_type(sub_video, Episode)
+                            sub_video = VideoFactory.make_from_type(
+                                sub_video, Episode)
 
                         videos_hashcode[sub_video_hashcode] = sub_video
 
@@ -202,17 +213,24 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
                             sub_video.name = sub_video_name
                         elif isinstance(sub_video, Episode):
                             # Retrieves serie name and episode name
-                            match_result = re.match(self._series_regexp, sub_video_name)
+                            match_result = re.match(
+                                self._series_regexp, sub_video_name)
                             sub_video.name = match_result.group("serie_name")
-                            sub_video.episode_name = match_result.group("episode_name")
+                            sub_video.episode_name = match_result.group(
+                                "episode_name")
 
-                            sub_video.season = int(data_subtitle['SeriesSeason'])
-                            sub_video.episode = int(data_subtitle['SeriesEpisode'])
+                            sub_video.season = int(
+                                data_subtitle['SeriesSeason'])
+                            sub_video.episode = int(
+                                data_subtitle['SeriesEpisode'])
 
-                        subtitle = Subtitle(sub_id, sub_lang, sub_video, sub_rating, sub_format)
+                        subtitle = Subtitle(
+                            sub_id, sub_lang, sub_video,
+                            sub_rating, sub_format)
                         subtitles_infos.append(subtitle)
             else:
-                raise SubtitleServerError(self, "There is no result when searching for subtitles.")
+                raise SubtitleServerError(
+                    self, "There is no result when searching for subtitles.")
         else:
             raise SubtitleServerError(self, self.get_status_reason(response))
 
@@ -224,13 +242,15 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
 
         # Download Subtitles
         subtitles_id = list(matching_subtitles.keys())
-        response = self._proxy.DownloadSubtitles(self._session_string, subtitles_id)
+        response = self._proxy.DownloadSubtitles(
+            self._session_string, subtitles_id)
 
         if self.status_ok(response):
             if 'data' in response and response['data'] != 'False':
                 for encoded_file in response['data']:
                     subtitle_id = encoded_file['idsubtitlefile']
-                    decoded_file = base64.standard_b64decode(encoded_file['data'])
+                    decoded_file = base64.standard_b64decode(
+                        encoded_file['data'])
                     file_data = zlib.decompress(decoded_file, 47)
 
                     subtitle = matching_subtitles[subtitle_id]
@@ -240,7 +260,8 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
 
                     subtitle.write(file_data)
             else:
-                raise SubtitleServerError(self, "There is no result when downloading subtitles.")
+                raise SubtitleServerError(
+                    self, "There is no result when downloading subtitles.")
         else:
             raise SubtitleServerError(self, self.get_status_reason(response))
 
@@ -271,11 +292,11 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
         return reason
 
 
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # Exceptions
 #
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 class ServerError(Exception):
     pass
 
@@ -309,11 +330,11 @@ class SubtitleServerError(ServerError):
             .format(self.subtitles_server.name, self.message)
 
 
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # Module methods
 #
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 _all_subtitle_servers_instance = []
 
 
@@ -338,8 +359,9 @@ def get_server_info(server_code):
     """ Returns information about a SubtitleServer. """
     init_servers()
 
-    server_infos = dict([(server.code, server)
-        for server in _all_subtitle_servers_instance])
+    server_infos = dict(
+        [(server.code, server) for server in _all_subtitle_servers_instance]
+    )
 
     server_info = server_infos.get(server_code, None)
 
@@ -347,7 +369,6 @@ def get_server_info(server_code):
         raise ServerCodeError(server_code)
 
     return server_info
-
 
 
 # EOF
