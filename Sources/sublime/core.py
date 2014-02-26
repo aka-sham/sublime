@@ -15,15 +15,13 @@ import logging
 import os
 import shutil
 import struct
-import csv
 import guessit
 
-from sublime import util
+from sublime.util import LanguageManager
+from sublime.util import FileMagic
 
 # Logger
 LOG = logging.getLogger("sublime.core")
-# Gets EXE dir
-exe_dir = util.get_exe_dir()
 
 
 # -----------------------------------------------------------------------------
@@ -189,7 +187,8 @@ class NamePattern(object):
 class VideoFactory(object):
     """ VideoFactory class which creates Video instances. """
 
-    file_magic = FileMagic()
+    # FileMagic to determine file type
+    FILE_MAGIC = FileMagic(Video.EXTENSIONS)
 
     @staticmethod
     def make_from_filename(video_filepath):
@@ -203,7 +202,7 @@ class VideoFactory(object):
                 video = Movie(video_filepath)
             elif guess['type'] == 'episode':
                 video = Episode(video_filepath)
-            elif VideoFactory.file_magic.is_video(video_filepath):
+            elif VideoFactory.FILE_MAGIC.is_video(video_filepath):
                 video = Video(video_filepath)
         except FileMagicError:
             LOG.warning(
@@ -232,6 +231,9 @@ class VideoFactory(object):
 class Subtitle(object):
     """ Subtitle class manages subtitle files. """
 
+    # Languages Manager
+    LANG_MANAGER = LanguageManager()
+
     # List of subtitles extensions
     EXTENSIONS = (
         "aqt", "jss", "sub", "ttxt",
@@ -243,7 +245,7 @@ class Subtitle(object):
     def __init__(self, unique_id, code, video, rating=0, extension=None):
         """ Initializes instance. """
         self.id = unique_id
-        self.language = LanguageManager().get_language_info(code)
+        self.language = Subtitle.LANG_MANAGER.get_language_info(code)
         self.video = video
         self.rating = rating
         self.extension = extension
@@ -275,222 +277,6 @@ class Subtitle(object):
     def __repr__(self):
         return "<Subtitle('{}', '{}', '{}', '{}')>".format(
             self.id, self.language.long_code, self.rating, self.extension)
-
-
-# -----------------------------------------------------------------------------
-#
-# LanguageInfo class
-#
-# -----------------------------------------------------------------------------
-class LanguageInfo(object):
-    """ LanguageInfo class which hold information about one language. """
-
-    def __init__(self, long_code, long_code_alt, short_code, name):
-        """ Initializes instance. """
-        self.long_code = long_code
-        self.long_code_alt = long_code_alt
-        self.short_code = short_code
-        self.name = name
-
-    def __eq__(self, other):
-        return self.long_code == other.long_code
-
-    def __repr__(self):
-        return "<LanguageInfo('{}', '{}', '{}', '{}')>".format(
-            self.long_code, self.long_code_alt, self.short_code, self.name)
-
-
-# -----------------------------------------------------------------------------
-#
-# LanguageManager class
-#
-# -----------------------------------------------------------------------------
-class LanguageManager(object):
-    """ LanguageManager manages languages operations such as
-    retrieving information. """
-
-    # Singleton pattern
-    _instance = None
-
-    def __new__(cls):
-        """ If there is already a LanguageManager instance
-        returns this one.
-        Ensures that there is only one instance of LanguageManager
-        is running in SubLime."""
-        if not LanguageManager._instance:
-            LanguageManager._instance = LanguageManager.__LanguageManager()
-        return LanguageManager._instance
-
-    def __getattr__(self, attr):
-        return getattr(self._instance, attr)
-
-    def __setattr__(self, attr, val):
-        return setattr(self._instance, attr, val)
-
-    class __LanguageManager():
-        """ Inner class for Singleton purpose. """
-
-        def __init__(self):
-            """ Initializes instance. """
-            self._language_codes = []
-            self._language_infos = {}
-
-            # Loads CSV config file containing all languages
-            languages_filepath = os.path.join(
-                exe_dir, "Config", "languages.csv")
-            with open(languages_filepath, "r", encoding='utf-8') as lang_file:
-                reader = csv.reader(
-                    lang_file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
-                for line in reader:
-                    long_code = line[0].strip()
-                    long_code_alt = line[1].strip()
-                    short_code = line[2].strip()
-                    name = line[3].strip()
-
-                    cur_lang_info = LanguageInfo(
-                        long_code, long_code_alt, short_code, name)
-                    self._language_infos[long_code] = cur_lang_info
-
-                    if long_code_alt:
-                        self._language_infos[long_code_alt] = cur_lang_info
-                    if short_code:
-                        self._language_infos[short_code] = cur_lang_info
-
-            self._language_codes = sorted(self._language_infos.keys())
-
-        def get_all_language_codes(self):
-            """ Gets the list of languages code
-            sorted by alphabetical order. """
-            return self._language_codes
-
-        def get_language_info(self, code):
-            """ Gets a LanguageInfo object which contains all
-            information about a language. """
-
-            language_info = self._language_infos.get(code, None)
-
-            if language_info is None:
-                raise LanguageCodeError(code)
-
-            return language_info
-
-
-# -----------------------------------------------------------------------------
-#
-# Signature class
-#
-# -----------------------------------------------------------------------------
-class Signature(object):
-    """ Signature class which hold information about file signatures. """
-
-    def __init__(self, magic_number, description):
-        """ Initializes instance. """
-        self.magic_number = magic_number
-        self.description = description
-        self.extensions = set()
-
-    def __eq__(self, other):
-        return self.magic_number == other.magic_number
-
-    def __repr__(self):
-        return "<Signature('{}', '{}', '{}')>".format(
-            self.magic_number, self.description, self.extensions)
-
-
-# -----------------------------------------------------------------------------
-#
-# FileMagic class
-#
-# -----------------------------------------------------------------------------
-class FileMagic(object):
-    """ FileMagic will try to determine the file's type by using
-    file signatures (magic numbers in the file's header). """
-
-    # Singleton pattern
-    _instance = None
-
-    def __new__(cls):
-        """ If there is already a FileMagic instance
-        returns this one.
-        Ensures that there is only one instance of FileMagic
-        is running in SubLime."""
-        if not FileMagic._instance:
-            FileMagic._instance = FileMagic.__FileMagic()
-        return FileMagic._instance
-
-    def __getattr__(self, attr):
-        return getattr(self._instance, attr)
-
-    def __setattr__(self, attr, val):
-        return setattr(self._instance, attr, val)
-
-    class __FileMagic():
-        """ Inner class for Singleton purpose. """
-
-        def __init__(self):
-            """ Initializes instance. """
-            self._video_extensions = {}
-            self._magic_numbers = {}
-            self._max_nb_bytes = 0
-
-            # Loads CSV config file containing all magic numbers
-            signatures_filepath = os.path.join(
-                exe_dir, "Config", "file_signatures.csv")
-            with open(signatures_filepath, "r", encoding='utf-8') as sign_file:
-                reader = csv.reader(
-                    sign_file, delimiter=',', quoting=csv.QUOTE_ALL)
-                for line in reader:
-                    extension = line[0].strip()
-                    magic_number = line[1].strip()
-                    description = line[2].strip()
-
-                    magic_number = tuple(
-                        int(figure, 16) for figure in magic_number.split()
-                    )
-
-                    cur_signature = Signature(magic_number, description)
-                    signature = self._magic_numbers.setdefault(
-                        magic_number, cur_signature)
-                    signature.extensions.add(extension)
-
-                    if extension in Video.EXTENSIONS:
-                        magic_numbers = self._video_extensions.setdefault(
-                            extension, [])
-                        magic_numbers.append(magic_number)
-
-            self._max_nb_bytes = max(
-                [len(magic) for magic in self._magic_numbers.keys()])
-
-        def is_video(self, filepath):
-            """ Checks if a file given by its filepath is a video. """
-            is_video = False
-            recognized = False
-            file_signature = None
-            _, ext = os.path.splitext(filepath)
-
-            all_magic_numbers = self._magic_numbers.keys()
-
-            with open(filepath, 'rb') as file_handler:
-                header = tuple(
-                    int(o) for o in file_handler.read(self._max_nb_bytes)
-                )
-
-            for magic in all_magic_numbers:
-                if header[:len(magic)] == magic:
-                    file_signature = self._magic_numbers[magic]
-                    if ext in file_signature.extensions:
-                        recognized = True
-                    break
-
-            if ext in Video.EXTENSIONS:
-                if recognized:
-                    is_video = True
-                elif file_signature:
-                    raise FileExtensionMismatchError(filepath, file_signature)
-                else:
-                    raise FileUnknownError(filepath)
-
-            return is_video
 
 
 # -----------------------------------------------------------------------------
@@ -531,61 +317,6 @@ class VideoHashCodeError(VideoError):
         return (
             "Error during hash code generation for movie file called {}: {}."
             .format(self.video_filepath, self.error)
-        )
-
-
-class LanguageCodeError(Exception):
-    """ Exception raised if a language code doesn't exist.
-
-    Attributes:
-        language_code -- language code that doesn't exist """
-
-    def __init__(self, language_code):
-        self.language_code = language_code
-
-    def __str__(self):
-        return "Language code {} does not exist.".format(self.language_code)
-
-
-class FileMagicError(Exception):
-    pass
-
-
-class FileExtensionMismatchError(FileMagicError):
-    """ Exception raised if the extension of a file and its signature mismatch.
-
-    Attributes:
-        filepath -- path of file
-        file_signature -- File signature detected by FileMagic. """
-
-    def __init__(self, filepath, file_signature):
-        self.filepath = filepath
-        self.file_signature = file_signature
-
-    def __str__(self):
-        return (
-            "The video file called {} is supposed to be a video but "
-            "its signature doesn't: {}."
-            "\nExpected extension: {}".format(
-                self.filepath,
-                self.file_signature.description,
-                " or ".join(self.file_signature.extensions))
-        )
-
-
-class FileUnknownError(FileMagicError):
-    """ Exception raised if a file is not recognized by FileMagic.
-
-    Attributes:
-        filepath -- path of file """
-
-    def __init__(self, filepath):
-        self.filepath = filepath
-
-    def __str__(self):
-        return (
-            "The file called {} was not recognized by Sublime.".format(
-                self.filepath)
         )
 
 
