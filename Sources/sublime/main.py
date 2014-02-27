@@ -147,13 +147,6 @@ def run():
         '-d', '--directory', action='append',
         help='List of directories containing movie files (recursive search).',
         type=_directory_exists, dest='directories', metavar="DIRECTORY")
-    files_group.add_argument(
-        '-w', '--watch', action='append',
-        help=(
-            'Watch a list of directories and download '
-            'a subtitle when a new movie appears.'),
-        type=_directory_exists,
-        dest='watched_directories', metavar="DIRECTORY")
 
     # Optional arguments
     parser.add_argument(
