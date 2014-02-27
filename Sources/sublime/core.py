@@ -16,6 +16,7 @@ import os
 import shutil
 import struct
 import guessit
+import enzyme
 
 from sublime.util import LanguageManager
 from sublime.util import FileMagic
@@ -49,11 +50,15 @@ class Video(object):
 
     UNDERSCORE = True
 
+    # FileMagic to determine file type
+    FILE_MAGIC = FileMagic(EXTENSIONS)
+
     def __init__(self, video_filepath):
         """ Initializes instance. """
         self.filename = os.path.abspath(video_filepath)
         self.hash_code = generate_hash_code(self.filename)
         self.size = str(os.path.getsize(self.filename))
+        self.signature = None
 
     def rename(self):
         """ Rename movie to a cleaner name. """
@@ -73,6 +78,22 @@ class Video(object):
                 "Cannot rename the file {}: {}".format(self.filename, error))
         else:
             self.filename = new_filename
+
+    def has_subtitle(self, language):
+        """ Returns true if the video has already
+        a subtitle for a specific language. """
+        has_subtitle = False
+
+        if Video.FILE_MAGIC.is_mkv(self.signature):
+            pass
+
+        return has_subtitle
+
+    @staticmethod
+    def get_video_signature(video_filepath):
+        """ Gets video file signature
+            if a file given by its filepath is a video. """
+        return Video.FILE_MAGIC.get_video_signature(video_filepath)
 
     def __eq__(self, other):
         return self.hash_code == other.hash_code
@@ -187,23 +208,26 @@ class NamePattern(object):
 class VideoFactory(object):
     """ VideoFactory class which creates Video instances. """
 
-    # FileMagic to determine file type
-    FILE_MAGIC = FileMagic(Video.EXTENSIONS)
-
     @staticmethod
     def make_from_filename(video_filepath):
         """ Returns a Movie or an Episode instance if it is possible,
-        else returns a Video instance. """
+        else returns a Video instance or None. """
         video = None
-        guess = guessit.guess_movie_info(video_filepath, info=['filename'])
 
         try:
-            if guess['type'] == 'movie':
-                video = Movie(video_filepath)
-            elif guess['type'] == 'episode':
-                video = Episode(video_filepath)
-            elif VideoFactory.FILE_MAGIC.is_video(video_filepath):
-                video = Video(video_filepath)
+            video_signature = Video.get_video_signature(video_filepath)
+
+            if video_signature:
+                guess = guessit.guess_movie_info(
+                    video_filepath, info=['filename'])
+                if guess['type'] == 'movie':
+                    video = Movie(video_filepath)
+                elif guess['type'] == 'episode':
+                    video = Episode(video_filepath)
+                else:
+                    video = Video(video_filepath)
+
+                video.signature = video_signature
         except FileMagicError:
             LOG.warning(
                 "This file was not recognized as a video file: {}".format(

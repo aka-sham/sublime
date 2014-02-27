@@ -113,8 +113,8 @@ class FileMagicTestCase(unittest.TestCase):
 
         self.assertEqual(id(file_magic_01), id(file_magic_02))
 
-    def test_FileMagic_is_video(self):
-        """ Tests if FileMagic recognize a Video file. """
+    def test_FileMagic_get_video_signature(self):
+        """ Tests if FileMagic get a Video file signature. """
         file_magic = FileMagic(Video.EXTENSIONS)
 
         video_filename = os.path.join(
@@ -125,11 +125,11 @@ class FileMagicTestCase(unittest.TestCase):
             get_exe_dir(), 'Tests', 'Fixtures', 'submarine.mp4')
 
         # Tests if a Video file
-        self.assertTrue(file_magic.is_video(video_filename))
+        self.assertIsNotNone(file_magic.get_video_signature(video_filename))
 
         # Tests a fake video file that raises an Exception
         with self.assertRaises(FileUnknownError) as error:
-            file_magic.is_video(not_a_video_filename)
+            file_magic.get_video_signature(not_a_video_filename)
 
         self.assertEqual(
             error.exception.filepath, not_a_video_filename)
@@ -139,7 +139,7 @@ class FileMagicTestCase(unittest.TestCase):
             (82, 73, 70, 70), "Resource Interchange File Format")
         expected_signature.extensions.add(".avi")
         with self.assertRaises(FileExtensionMismatchError) as error:
-            file_magic.is_video(video_filename_with_bad_extension)
+            file_magic.get_video_signature(video_filename_with_bad_extension)
 
         self.assertEqual(
             error.exception.filepath, video_filename_with_bad_extension)

@@ -198,36 +198,46 @@ class FileMagic(object):
             self._max_nb_bytes = max(
                 [len(magic) for magic in self._magic_numbers.keys()])
 
-        def is_video(self, filepath):
-            """ Checks if a file given by its filepath is a video. """
-            is_video = False
+            self._mkv_magic_number = tuple(
+                int(figure, 16) for figure in "1A 45 DF A3 93 42 82 88".split()
+            )
+
+        def get_video_signature(self, filepath):
+            """ Gets video file signature
+            if a file given by its filepath is a video. """
             recognized = False
             file_signature = None
+
             _, ext = os.path.splitext(filepath)
 
-            all_magic_numbers = self._magic_numbers.keys()
-
-            with open(filepath, 'rb') as file_handler:
-                header = tuple(
-                    int(o) for o in file_handler.read(self._max_nb_bytes)
-                )
-
-            for magic in all_magic_numbers:
-                if header[:len(magic)] == magic:
-                    file_signature = self._magic_numbers[magic]
-                    if ext in file_signature.extensions:
-                        recognized = True
-                    break
-
             if ext in self._video_extensions:
-                if recognized:
-                    is_video = True
-                elif file_signature:
-                    raise FileExtensionMismatchError(filepath, file_signature)
-                else:
-                    raise FileUnknownError(filepath)
 
-            return is_video
+                all_magic_numbers = self._magic_numbers.keys()
+
+                with open(filepath, 'rb') as file_handler:
+                    header = tuple(
+                        int(o) for o in file_handler.read(self._max_nb_bytes)
+                    )
+
+                for magic in all_magic_numbers:
+                    if header[:len(magic)] == magic:
+                        file_signature = self._magic_numbers[magic]
+                        if ext in file_signature.extensions:
+                            recognized = True
+                        break
+
+                if not recognized:
+                    if file_signature:
+                        raise FileExtensionMismatchError(
+                            filepath, file_signature)
+                    else:
+                        raise FileUnknownError(filepath)
+
+            return file_signature
+
+        def is_mkv(self, file_signature):
+            """ Determines if a file signature is a MKV. """
+            return file_signature.magic_number == self._mkv_magic_number
 
 
 # -----------------------------------------------------------------------------
