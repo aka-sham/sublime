@@ -17,9 +17,13 @@ import shutil
 import struct
 import guessit
 import enzyme
+import glob
 
-from sublime.util import LanguageManager
+from babelfish import Language
+from babelfish import Error as BabelfishError
+
 from sublime.util import FileMagic
+from sublime.util import FileMagicError
 
 # Logger
 LOG = logging.getLogger("sublime.core")
@@ -59,6 +63,7 @@ class Video(object):
         self.hash_code = generate_hash_code(self.filename)
         self.size = str(os.path.getsize(self.filename))
         self.signature = None
+        self.languages_to_download = []
 
     def rename(self):
         """ Rename movie to a cleaner name. """
@@ -84,8 +89,40 @@ class Video(object):
         a subtitle for a specific language. """
         has_subtitle = False
 
-        if Video.FILE_MAGIC.is_mkv(self.signature):
-            pass
+        # Look for embedded subtitle in mkv video
+        if Video.is_mkv(self.signature):
+            with open(self.filename, 'rb') as file_handler:
+                mkv_video = enzyme.MKV(file_handler)
+
+            for sub in mkv_video.subtitle_tracks:
+                try:
+                    if sub.language and \
+                            Language.fromalpha3b(sub.language) == language:
+                        has_subtitle = True
+                        break
+                    elif sub.name and \
+                            Language.fromname(sub.name) == language:
+                        has_subtitle = True
+                        break
+                except BabelfishError:
+                    LOG.error(
+                        "Embedded subtitle track"
+                        "language {} is not a valid language"
+                        .format(sub.language))
+
+        # Look for external subtitle
+        dir_name = os.path.dirname(self.filename)
+        base_name, _ = os.path.splitext(os.path.basename(self.filename))
+
+        search_subtitle = os.path.join(
+            dir_name, "{}.{}.*".format(base_name, language.alpha2))
+        existing_subtitles = [
+            sub_file for sub_file in glob.glob(search_subtitle)
+            if os.path.splitext(sub_file)[1] in Subtitle.EXTENSIONS
+        ]
+
+        if existing_subtitles:
+            has_subtitle = True
 
         return has_subtitle
 
@@ -94,6 +131,11 @@ class Video(object):
         """ Gets video file signature
             if a file given by its filepath is a video. """
         return Video.FILE_MAGIC.get_video_signature(video_filepath)
+
+    @staticmethod
+    def is_mkv(file_signature):
+        """ Determines if a file signature is a MKV. """
+        return Video.FILE_MAGIC.is_mkv(file_signature)
 
     def __eq__(self, other):
         return self.hash_code == other.hash_code
@@ -214,24 +256,28 @@ class VideoFactory(object):
         else returns a Video instance or None. """
         video = None
 
-        try:
-            video_signature = Video.get_video_signature(video_filepath)
+        if os.path.exists(video_filepath):
+            try:
+                video_signature = Video.get_video_signature(video_filepath)
 
-            if video_signature:
-                guess = guessit.guess_movie_info(
-                    video_filepath, info=['filename'])
-                if guess['type'] == 'movie':
-                    video = Movie(video_filepath)
-                elif guess['type'] == 'episode':
-                    video = Episode(video_filepath)
-                else:
-                    video = Video(video_filepath)
+                if video_signature:
+                    guess = guessit.guess_movie_info(
+                        video_filepath, info=['filename'])
+                    if guess['type'] == 'movie':
+                        video = Movie(video_filepath)
+                    elif guess['type'] == 'episode':
+                        video = Episode(video_filepath)
+                    else:
+                        video = Video(video_filepath)
 
-                video.signature = video_signature
-        except FileMagicError:
-            LOG.warning(
-                "This file was not recognized as a video file: {}".format(
-                    video_filepath))
+                    video.signature = video_signature
+            except FileMagicError:
+                LOG.warning(
+                    "This file was not recognized as a video file: {}".format(
+                        video_filepath))
+        else:
+            LOG.error(
+                "The following doesn't exists: {}".format(video_filepath))
 
         return video
 
@@ -241,6 +287,8 @@ class VideoFactory(object):
         depending on video_type. """
         if not isinstance(video, (Movie, Episode)):
             new_video = video_type(video.filename)
+            new_video.signature = video.signature
+            new_video.languages_to_download = video.languages_to_download
         else:
             new_video = video
 
@@ -255,9 +303,6 @@ class VideoFactory(object):
 class Subtitle(object):
     """ Subtitle class manages subtitle files. """
 
-    # Languages Manager
-    LANG_MANAGER = LanguageManager()
-
     # List of subtitles extensions
     EXTENSIONS = (
         "aqt", "jss", "sub", "ttxt",
@@ -266,10 +311,10 @@ class Subtitle(object):
         "ass", "usf", "txt"
     )
 
-    def __init__(self, unique_id, code, video, rating=0, extension=None):
+    def __init__(self, unique_id, language, video, rating=0, extension=None):
         """ Initializes instance. """
         self.id = unique_id
-        self.language = Subtitle.LANG_MANAGER.get_language_info(code)
+        self.language = language
         self.video = video
         self.rating = rating
         self.extension = extension
@@ -280,7 +325,7 @@ class Subtitle(object):
         dir_name = os.path.dirname(self.video.filename)
         base_name, _ = os.path.splitext(os.path.basename(self.video.filename))
         filename = "{}.{}.{}".format(
-            base_name, self.language.short_code, self.extension)
+            base_name, self.language.alpha2, self.extension)
 
         return os.path.join(dir_name, filename)
 
@@ -300,7 +345,7 @@ class Subtitle(object):
 
     def __repr__(self):
         return "<Subtitle('{}', '{}', '{}', '{}')>".format(
-            self.id, self.language.long_code, self.rating, self.extension)
+            self.id, self.language.alpha3, self.rating, self.extension)
 
 
 # -----------------------------------------------------------------------------

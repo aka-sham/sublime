@@ -15,10 +15,10 @@ import unittest
 import os
 import shutil
 
+import babelfish
+
 from sublime.util import get_exe_dir
 from sublime.core import Video
-from sublime.core import Movie
-from sublime.core import Episode
 from sublime.server import get_server_codes
 from sublime.server import get_server_info
 from sublime.server import ServerCodeError
@@ -64,6 +64,11 @@ class OpenSubtitlesServerTestCase(unittest.TestCase):
     """ Tests OpenSubtitlesServer functions. """
 
     def setUp(self):
+        self.languages = ['eng', 'fra']
+        self.babel_languages = [
+            babelfish.Language(code) for code in self.languages
+        ]
+
         self.video_filename = os.path.join(
             get_exe_dir(), 'Tests', 'Fixtures', 'movie.avi')
         self.expected_french_subtitle_filename = \
@@ -92,10 +97,11 @@ class OpenSubtitlesServerTestCase(unittest.TestCase):
         episode = Video(self.video_filename)
         episode.hash_code = "8fcf0167e19c41be"
         episode.size = str(243500836)
+        episode.languages_to_download = self.babel_languages
 
         server = OpenSubtitlesServer()
         server.connect()
-        server.download_subtitles([episode], ['eng', 'fre'])
+        server.download_subtitles([episode], self.babel_languages)
         self.assertTrue(os.path.exists(
             self.expected_french_subtitle_filename))
         self.assertTrue(os.path.exists(
@@ -108,10 +114,11 @@ class OpenSubtitlesServerTestCase(unittest.TestCase):
         episode = Video(self.video_filename)
         episode.hash_code = "8fcf0167e19c41be"
         episode.size = str(243500836)
+        episode.languages_to_download = self.babel_languages
 
         server = OpenSubtitlesServer()
         server.connect()
-        server.download_subtitles([episode], ['eng', 'fre'], True)
+        server.download_subtitles([episode], self.babel_languages, True)
         self.assertTrue(os.path.exists(self.expected_renamed_video_filename))
         self.assertTrue(os.path.exists(
             self.expected_renamed_french_subtitle_filename))

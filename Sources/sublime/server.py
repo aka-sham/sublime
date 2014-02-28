@@ -12,13 +12,13 @@
 ##
 
 import logging
-import shutil
-import urllib.request
 import xmlrpc.client
 import zlib
 import base64
 import re
 import itertools
+
+from babelfish import Language
 
 from sublime.core import Subtitle
 from sublime.core import Movie
@@ -187,17 +187,20 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
         if self.status_ok(response):
             if 'data' in response and response['data'] != 'False':
                 for data_subtitle in response['data']:
-                    sub_lang = data_subtitle['SubLanguageID']
-                    if sub_lang in languages:
+                    # Retrieve important info
+                    sub_video_hashcode = data_subtitle['MovieHash']
+                    sub_video = videos_hashcode[sub_video_hashcode]
+                    sub_lang = Language.fromopensubtitles(
+                        data_subtitle['SubLanguageID'])
+
+                    if sub_lang in sub_video.languages_to_download \
+                            and sub_lang in languages:
                         # Subtitle infos
                         sub_id = data_subtitle['IDSubtitleFile']
                         sub_rating = float(data_subtitle['SubRating'])
                         sub_format = data_subtitle['SubFormat']
 
                         # Video infos
-                        sub_video_hashcode = data_subtitle['MovieHash']
-                        sub_video = videos_hashcode[sub_video_hashcode]
-
                         sub_video_name = data_subtitle['MovieName']
 
                         if data_subtitle['MovieKind'] == "movie":
@@ -286,7 +289,6 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
 
         if status is not None:
             match_result = re.match(self._status_regexp, status)
-            code = int(match_result.group("code"))
             reason = match_result.group("message")
 
         return reason
