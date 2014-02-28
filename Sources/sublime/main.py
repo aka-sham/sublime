@@ -58,7 +58,8 @@ def execute(args):
                 for name in files:
                     video_filename = os.path.join(root, name)
                     video = VideoFactory.make_from_filename(video_filename)
-                    videos.append(video)
+                    if video:
+                        videos.append(video)
 
     # Informs user that there is already existing subtitles
     for video in videos:
