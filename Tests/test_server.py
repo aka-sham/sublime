@@ -20,7 +20,7 @@ import babelfish
 from sublime.util import get_exe_dir
 from sublime.core import Video
 from sublime.server import get_server_codes
-from sublime.server import get_server_info
+from sublime.server import get_server
 from sublime.server import ServerCodeError
 from sublime.server import OpenSubtitlesServer
 
@@ -38,19 +38,19 @@ class ServerModuleTestCase(unittest.TestCase):
         returns the list of SubtitleServers code. """
         self.assertListEqual(get_server_codes(), ['os'])
 
-    def test_get_server_info(self):
-        """ Tests that get_server_info
+    def test_get_server(self):
+        """ Tests that get_server
         returns a SubtitleServer with its infos. """
-        server_infos = get_server_info('os')
+        server = get_server('os')
 
-        self.assertEqual(server_infos.code, 'os')
-        self.assertEqual(server_infos.name, 'OpenSubtitles')
-        self.assertEqual(server_infos.address, 'http://www.opensubtitles.org')
+        self.assertEqual(server.code, 'os')
+        self.assertEqual(server.name, 'OpenSubtitles')
+        self.assertEqual(server.address, 'http://www.opensubtitles.org')
 
         # Tests that raises an Exception
         wrong_code = "DUMMY"
         with self.assertRaises(ServerCodeError) as error:
-            get_server_info(wrong_code)
+            get_server(wrong_code)
 
         self.assertEqual(error.exception.server_code, wrong_code)
 

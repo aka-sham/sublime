@@ -237,36 +237,38 @@ class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
         else:
             raise SubtitleServerError(self, self.get_status_reason(response))
 
-        # Clean up list of subtitles by taking highest rating per language
-        subtitles_infos.sort()
-        for _, group in itertools.groupby(subtitles_infos):
-            best_subtitle = max(list(group))
-            matching_subtitles[best_subtitle.id] = best_subtitle
+        if subtitles_infos:
+            # Clean up list of subtitles by taking highest rating per language
+            subtitles_infos.sort()
+            for _, group in itertools.groupby(subtitles_infos):
+                best_subtitle = max(list(group))
+                matching_subtitles[best_subtitle.id] = best_subtitle
 
-        # Download Subtitles
-        subtitles_id = list(matching_subtitles.keys())
-        response = self._proxy.DownloadSubtitles(
-            self._session_string, subtitles_id)
+            # Download Subtitles
+            subtitles_id = list(matching_subtitles.keys())
+            response = self._proxy.DownloadSubtitles(
+                self._session_string, subtitles_id)
 
-        if self.status_ok(response):
-            if 'data' in response and response['data'] != 'False':
-                for encoded_file in response['data']:
-                    subtitle_id = encoded_file['idsubtitlefile']
-                    decoded_file = base64.standard_b64decode(
-                        encoded_file['data'])
-                    file_data = zlib.decompress(decoded_file, 47)
+            if self.status_ok(response):
+                if 'data' in response and response['data'] != 'False':
+                    for encoded_file in response['data']:
+                        subtitle_id = encoded_file['idsubtitlefile']
+                        decoded_file = base64.standard_b64decode(
+                            encoded_file['data'])
+                        file_data = zlib.decompress(decoded_file, 47)
 
-                    subtitle = matching_subtitles[subtitle_id]
+                        subtitle = matching_subtitles[subtitle_id]
 
-                    if rename:
-                        subtitle.video.rename()
+                        if rename:
+                            subtitle.video.rename()
 
-                    subtitle.write(file_data)
+                        subtitle.write(file_data)
+                else:
+                    raise SubtitleServerError(
+                        self, "There is no result when downloading subtitles.")
             else:
                 raise SubtitleServerError(
-                    self, "There is no result when downloading subtitles.")
-        else:
-            raise SubtitleServerError(self, self.get_status_reason(response))
+                    self, self.get_status_reason(response))
 
     def status_ok(self, response):
         """ Is status returned by server is OK ? """
@@ -337,14 +339,15 @@ class SubtitleServerError(ServerError):
 # Module methods
 #
 # -----------------------------------------------------------------------------
-_all_subtitle_servers_instance = []
+_all_subtitle_servers_instance = {}
 
 
 def init_servers():
     """ Initializes all SubtitleServers. """
     if not _all_subtitle_servers_instance:
         for cls_server in _all_subtitle_servers_class:
-            _all_subtitle_servers_instance.append(cls_server())
+            sub_server = cls_server()
+            _all_subtitle_servers_instance[sub_server.code] = sub_server
 
 
 def get_server_codes():
@@ -352,25 +355,36 @@ def get_server_codes():
     init_servers()
 
     server_codes = sorted(
-        [server.code for server in _all_subtitle_servers_instance])
+        [code for code in _all_subtitle_servers_instance.keys()])
 
     return server_codes
 
 
-def get_server_info(server_code):
-    """ Returns information about a SubtitleServer. """
+def get_server(server_code):
+    """ Returns a SubtitleServer. """
     init_servers()
 
-    server_infos = dict(
-        [(server.code, server) for server in _all_subtitle_servers_instance]
-    )
+    server = _all_subtitle_servers_instance.get(server_code, None)
 
-    server_info = server_infos.get(server_code, None)
-
-    if server_info is None:
+    if server is None:
         raise ServerCodeError(server_code)
 
-    return server_info
+    return server
+
+
+def get_servers(server_codes):
+    """ Returns several SubtitleServers. """
+    init_servers()
+
+    servers = [
+        server for code, server in _all_subtitle_servers_instance.items()
+        if code in server_codes
+    ]
+
+    if servers is None:
+        raise ServerCodeError(server_codes)
+
+    return servers
 
 
 # EOF

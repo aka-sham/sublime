@@ -14,12 +14,13 @@
 import sys
 import os
 import argparse
-import glob
-import mimetypes
+
+import babelfish
 
 from sublime import util
 from sublime import server
-from sublime import subtitle
+from sublime.core import Episode
+from sublime.core import VideoFactory
 
 __version__ = util.get_version_from_git()
 
@@ -38,55 +39,53 @@ subtitles_to_find = {}
 
 def execute(args):
     """ Executes SubLime with given arguments. """
-    movie_filenames = []
+    videos = []
+    selected_languages = [
+        babelfish.Language(selected_lang)
+        for selected_lang in args.selected_languages
+    ]
 
     # List of filenames directly given by user
-    if args.movie_files:
-        movie_filenames = args.movie_files
+    if args.video_files:
+        videos = [
+            VideoFactory.make_from_filename(video_filename)
+            for video_filename in args.video_files
+        ]
     # Or list of filenames by walking through directories
     elif args.directories:
-        mimetypes.init()
-
         for movie_dir in args.directories:
             for root, _, files in os.walk(movie_dir):
                 for name in files:
-                    movie_filename = os.path.join(root, name)
-                    mtype, _ = mimetypes.guess_type(
-                        movie_filename, strict=False)
-
-                    if mtype.startswith('video'):
-                        movie_filenames.append(movie_filename)
+                    video_filename = os.path.join(root, name)
+                    video = VideoFactory.make_from_filename(video_filename)
+                    videos.append(video)
 
     # Informs user that there is already existing subtitles
-    for movie_filename in movie_filenames:
-        excluded_language_codes = []
-        basename, _ = os.path.splitext(movie_filename)
-        for ext in SUBTITLE_EXTENSIONS:
-            search_subtitle_filename = "{}.*.{}".format(basename, ext)
-            existing_subtitles = glob.glob(search_subtitle_filename)
-
-            if existing_subtitles:
-                LOG.debug("Existing subtitles: {}".format(
-                    existing_subtitles.join(", ")))
+    for video in videos:
+        for selected_lang in selected_languages:
+            if video.has_subtitle(selected_lang):
                 if not args.force:
-                    LOG.warning('File {} already has a subtitle " + \
-                        "and nothing will happen for it! " + \
-                        "Use option "-f --force" to replace.'.format(
-                        movie_filename))
-                    # TODO
-                    for subtitle in existing_subtitles:
-                        excluded_language_codes.append()
+                    LOG.warning(
+                        "Video {} already has a subtitle "
+                        "for language {} "
+                        "and nothing will happen for it! "
+                        "Use option '-f --force' to replace.".format(
+                            video, selected_lang))
                 else:
                     LOG.warning(
-                        'Replacing {} subtitle.'.format(movie_filename))
+                        'Replacing {} subtitle for {}.'.format(
+                            selected_lang, video))
+                    video.languages_to_download.append(selected_lang)
+            else:
+                video.languages_to_download.append(selected_lang)
 
-        # Adds movie filename with languages to search in dictionnary
-        language_codes_to_search = [
-            code for code in args.languages
-            if code not in excluded_language_codes
-        ]
-        subtitles_to_find.setdefault(movie_filename, []).extend(
-            language_codes_to_search)
+    # Search subtitles for videos
+    for sub_server in server.get_servers(args.servers):
+        sub_server.connect()
+        sub_server.download_subtitles(
+            videos, selected_languages,
+            args.rename, args.rename_pattern, args.underscore)
+        sub_server.disconnect()
 
 
 def _file_exists(movie_file):
@@ -116,9 +115,8 @@ def run():
     LOG.info("Welcome to SubLime !")
 
     # Languages
-    language_manager = subtitle.LanguageManager()
-    language_codes = language_manager.get_all_language_codes()
-    default_languages = ['en', 'fr']
+    language_codes = babelfish.language.LANGUAGES
+    default_languages = ('eng', 'fra')
 
     # Subtitles Servers
     server_codes = server.get_server_codes()
@@ -142,7 +140,7 @@ def run():
     files_group.add_argument(
         '-m', '--movie', action='append',
         help='List of movie files.', type=_file_exists,
-        dest='movie_files', metavar='FILES')
+        dest='video_files', metavar='FILES')
     files_group.add_argument(
         '-d', '--directory', action='append',
         help='List of directories containing movie files (recursive search).',
@@ -152,7 +150,8 @@ def run():
     parser.add_argument(
         '-l', '--language', action='append',
         default=default_languages, help='Sets languages to filter.',
-        dest='languages', choices=language_codes, metavar="LANGUAGE CODE")
+        dest='selected_languages',
+        choices=language_codes, metavar="LANGUAGE CODE")
     parser.add_argument(
         '-s', '--server', action='append',
         default=server_codes, help='Sets servers to use.',
@@ -166,6 +165,16 @@ def run():
         default=False,
         help='Renames video and their subtitles according to a pattern.',
         dest='rename')
+    parser.add_argument(
+        '-p', '--pattern', action='store',
+        default=Episode.RENAME_PATTERN,
+        help='Change default rename pattern for Episodes.',
+        dest='rename_pattern')
+    parser.add_argument(
+        '-u', '--with-underscore', action='store_true',
+        default=False,
+        help='When renaming video replaces blanks with underscores.',
+        dest='underscore')
 
     # Parse the arguments line
     try:
@@ -178,10 +187,5 @@ def run():
     LOG.info("Good bye !")
     sys.exit()
 
-###
-# MAIN
-##
-if __name__ == '__main__':
-    run()
 
 # EOF

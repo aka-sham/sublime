@@ -180,7 +180,7 @@ class Movie(Video):
 # Episode class
 #
 # -----------------------------------------------------------------------------
-class Episode(object):
+class Episode(Video):
     """ Episode class. """
 
     RENAME_PATTERN = "{serie_name} S{season:02d}E{episode:02d} {episode_name}"
@@ -305,10 +305,10 @@ class Subtitle(object):
 
     # List of subtitles extensions
     EXTENSIONS = (
-        "aqt", "jss", "sub", "ttxt",
-        "pjs", "psb", "rt", "smi",
-        "ssf", "srt", "gsub", "ssa",
-        "ass", "usf", "txt"
+        ".aqt", ".jss", ".sub", ".ttxt",
+        ".pjs", ".psb", ".rt", ".smi",
+        ".ssf", ".srt", ".gsub", ".ssa",
+        ".ass", ".usf", ".txt"
     )
 
     def __init__(self, unique_id, language, video, rating=0, extension=None):
