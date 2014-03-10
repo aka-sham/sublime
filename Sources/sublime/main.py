@@ -89,26 +89,29 @@ def execute(args):
         sub_server.disconnect()
 
 
-def _file_exists(movie_file):
+def _file_exists(video_file):
     """ Checks if given movie file exists. """
-    msg = "The movie file {} doesn't exist.".format(movie_file)
+    if not os.path.exists(video_file):
+        raise argparse.ArgumentTypeError(
+            "The video file {} doesn't exist.".format(video_file))
+    elif not os.path.isfile(video_file):
+        raise argparse.ArgumentTypeError(
+            "The video {} is not a file.".format(video_file))
 
-    return _exists(movie_file, msg)
+    return video_file
 
 
-def _directory_exists(movie_directory):
+def _directory_exists(video_directory):
     """ Checks if given movie directory exists. """
-    msg = "The movie directory {} doesn't exist.".format(movie_directory)
+    if not os.path.exists(video_directory):
+        raise argparse.ArgumentTypeError(
+            "The video directory {} doesn't exist.".format(video_directory))
+    elif not os.path.isdir(video_directory):
+        raise argparse.ArgumentTypeError(
+            "The video directory {} is not a directory.".format(
+                video_directory))
 
-    return _exists(movie_directory, msg)
-
-
-def _exists(location, error_message):
-    """ Checks if given location exists. """
-    if not os.path.exists(location):
-        raise argparse.ArgumentTypeError(error_message)
-
-    return location
+    return video_directory
 
 
 def run():
