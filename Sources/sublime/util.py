@@ -3,7 +3,7 @@
 
 ###
 # Project          : SubLime
-# FileName         : utils.py
+# FileName         : util.py
 # -----------------------------------------------------------------------------
 # Author           : sham
 # E-Mail           : mauricesham@gmail.com
@@ -238,7 +238,8 @@ def get_version_from_git():
         verstr = system(
             'git', 'describe', '--abbrev=0').strip().decode("utf-8")
     except Exception as error:
-        print("Cannot find the version number of SubLime. Error: %s" % error)
+        print("Cannot find the version number of SubLime. Error: {}".format(
+            error))
 
     return verstr
 

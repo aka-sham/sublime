@@ -3,7 +3,7 @@
 
 ###
 # Project          : SubLime
-# FileName         : main.py
+# FileName         : cli.py
 # -----------------------------------------------------------------------------
 # Author           : sham
 # E-Mail           : mauricesham@gmail.com
@@ -32,9 +32,6 @@ os.environ['SUBLIME_HOME'] = exe_dir
 
 # Gets a logger
 LOG = util.init_logging()
-
-# Dictionnary of videos for which subtitles need to be found
-subtitles_to_find = {}
 
 
 def execute(args):
@@ -116,8 +113,6 @@ def _directory_exists(video_directory):
 
 def run():
     """ Main command-line execution loop. """
-    LOG.info("Welcome to SubLime !")
-
     # Languages
     language_codes = babelfish.language.LANGUAGES
     default_languages = ('eng', 'fra')
@@ -133,7 +128,7 @@ def run():
         ),
         prog='SubLime')
 
-    sublime_version = '%(prog)s v' + __version__
+    sublime_version = '%(prog)s ' + __version__
 
     parser.add_argument(
         '--version', action='version',
@@ -188,7 +183,6 @@ def run():
         LOG.exception(error)
         sys.exit(2)
 
-    LOG.info("Good bye !")
     sys.exit()
 
 

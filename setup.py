@@ -43,7 +43,7 @@ setup(
     packages=find_packages(source_dir),
     entry_points={
         'console_scripts': [
-            'sublime = sublime.main:run',
+            'SubLime = sublime.cli:run',
         ],
     },
     license="License :: OSI Approved :: BSD License",

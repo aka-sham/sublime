@@ -11,12 +11,15 @@
 # Creation date    : 28/02/2014
 ##
 
-from sublime import main
+from sublime import cli
+from sublime import util
+
+__version__ = util.get_version_from_git()
 
 ###
 # MAIN
 ##
 if __name__ == '__main__':
-    main.run()
+    cli.run()
 
 # EOF
