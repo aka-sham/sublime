@@ -4,10 +4,10 @@
 ###
 # Project          : SubLime
 # FileName         : setup.py
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Author           : sham
 # E-Mail           : mauricesham@gmail.com
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Creation date    : 28/08/2013
 ##
 
@@ -33,7 +33,8 @@ __version__ = util.get_version_from_git()
 setup(
     name="SubLime",
     version=__version__,
-    description="SubLime is a command-line program for searching and downloading the right subtitles for movies.",
+    description="SubLime is a command-line program for searching "
+                "and downloading the right subtitles for movies.",
     author="sham",
     author_email="mauricesham@gmail.com",
     url="https://github.com/shamsan/sublime",
@@ -49,7 +50,7 @@ setup(
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Development Status :: 1 - Planning",
+        "Development Status :: 2 - Pre-Alpha",
         "Environment :: Console",
         "Intended Audience :: End Users/Desktop",
         "License :: OSI Approved :: BSD License",
