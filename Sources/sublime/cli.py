@@ -62,17 +62,18 @@ def execute(args):
     for video in videos:
         for selected_lang in selected_languages:
             if video.has_subtitle(selected_lang):
+                video_type = video.__class__.__name__
+                video_name = os.path.basename(video.filename)
                 if not args.force:
                     LOG.warning(
-                        "Video {} already has a subtitle "
-                        "for language {} "
-                        "and nothing will happen for it! "
+                        "{} named {} already has a subtitle "
+                        "for {} and nothing will happen for it! "
                         "Use option '-f --force' to replace.".format(
-                            video, selected_lang))
+                            video_type, video_name, selected_lang.name))
                 else:
-                    LOG.warning(
-                        'Replacing {} subtitle for {}.'.format(
-                            selected_lang, video))
+                    LOG.info(
+                        'Replacing {} subtitle for {} named {}.'.format(
+                            selected_lang.name, video_type, video_name))
                     video.languages_to_download.append(selected_lang)
             else:
                 video.languages_to_download.append(selected_lang)
