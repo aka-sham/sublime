@@ -147,19 +147,6 @@ class FileMagic(object):
 # Exceptions
 #
 # -----------------------------------------------------------------------------
-class LanguageCodeError(Exception):
-    """ Exception raised if a language code doesn't exist.
-
-    Attributes:
-        language_code -- language code that doesn't exist """
-
-    def __init__(self, language_code):
-        self.language_code = language_code
-
-    def __str__(self):
-        return "Language code {} does not exist.".format(self.language_code)
-
-
 class FileMagicError(Exception):
     pass
 
