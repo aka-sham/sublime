@@ -18,7 +18,7 @@ import argparse
 import babelfish
 
 from sublime import util
-from sublime import server
+from sublime.server import SubtitleProvider
 from sublime.core import Episode
 from sublime.core import VideoFactory
 
@@ -79,7 +79,7 @@ def execute(args):
                 video.languages_to_download.append(selected_lang)
 
     # Search subtitles for videos
-    for sub_server in server.get_servers(args.servers):
+    for sub_server in SubtitleProvider.get_servers():
         sub_server.connect()
         sub_server.download_subtitles(
             videos, selected_languages,
@@ -118,9 +118,6 @@ def run():
     language_codes = babelfish.language.LANGUAGES
     default_languages = ('eng', 'fra')
 
-    # Subtitles Servers
-    server_codes = server.get_server_codes()
-
     # create the arguments parser
     parser = argparse.ArgumentParser(
         description=(
@@ -152,10 +149,6 @@ def run():
         default=default_languages, help='Sets languages to filter.',
         dest='selected_languages',
         choices=language_codes, metavar="LANGUAGE CODE")
-    parser.add_argument(
-        '-s', '--server', action='append',
-        default=server_codes, help='Sets servers to use.',
-        dest='servers', choices=server_codes, metavar="SERVER CODE")
     parser.add_argument(
         '-f', '--force', action='store_true',
         default=False, help='Replaces existing subtitles.',

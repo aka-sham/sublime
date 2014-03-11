@@ -32,22 +32,50 @@ LOG = logging.getLogger("sublime.server")
 
 # -----------------------------------------------------------------------------
 #
-# SubtitleServerType class
+# ProviderMount class
 #
 # -----------------------------------------------------------------------------
-_all_subtitle_servers_class = []
-
-
-class SubtitleServerType(type):
-    """ Metaclass SubtitleServerType to store all SubtitleServers
+class ProviderMount(type):
+    """ Metaclass ProviderMount to store all SubtitleServers
     into a dictionary. """
 
     def __init__(cls, name, bases, attrs):
         """ Metaclass Initializes instance. """
-        type.__init__(cls, name, bases, attrs)
-        _all_subtitle_servers_class.append(cls)
-        LOG.debug(
-            "A new SubtitleServer class has been registered: {}".format(name))
+        if not hasattr(cls, 'providers'):
+            cls.providers = []
+        else:
+            cls.providers.append(cls)
+            LOG.debug(
+                "A new SubtitleServer class has been registered: {}".format(
+                    name))
+
+
+# -----------------------------------------------------------------------------
+#
+# SubtitleProvider class
+#
+# -----------------------------------------------------------------------------
+class SubtitleProvider(metaclass=ProviderMount):
+    """ Mount point for subtitles providers.
+
+    Providers implementing this reference should provide
+    the following attributes:
+
+        name -- Name of the provider that will be displayed
+        address -- Official address of the provider
+        code -- Unique code for this provider """
+
+    _instances = []
+
+    @staticmethod
+    def get_servers():
+        """ Returns several SubtitleServers. """
+        if not SubtitleProvider._instances:
+            SubtitleProvider._instances = [
+                provider() for provider in SubtitleProvider.providers
+            ]
+
+        return SubtitleProvider._instances
 
 
 # -----------------------------------------------------------------------------
@@ -125,7 +153,7 @@ class SubtitleServer(object):
 # OpenSubtitlesServer class
 #
 # -----------------------------------------------------------------------------
-class OpenSubtitlesServer(SubtitleServer, metaclass=SubtitleServerType):
+class OpenSubtitlesServer(SubtitleProvider, SubtitleServer):
     """ """
     XMLRPC_URI = "http://api.opensubtitles.org/xml-rpc"
     DEFAULT_LANGUAGE = "en"
@@ -305,19 +333,6 @@ class ServerError(Exception):
     pass
 
 
-class ServerCodeError(ServerError):
-    """ Exception raised if a server code doesn't exist.
-
-    Attributes:
-        server_code -- server code that doesn't exist """
-
-    def __init__(self, server_code):
-        self.server_code = server_code
-
-    def __str__(self):
-        return "Server code {} does not exist.".format(self.server_code)
-
-
 class SubtitleServerError(ServerError):
     """ Exception raised if a subtitle server return an error status.
 
@@ -332,59 +347,5 @@ class SubtitleServerError(ServerError):
     def __str__(self):
         return "Subtitles Server {} returns an error status: {}." \
             .format(self.subtitles_server.name, self.message)
-
-
-# -----------------------------------------------------------------------------
-#
-# Module methods
-#
-# -----------------------------------------------------------------------------
-_all_subtitle_servers_instance = {}
-
-
-def init_servers():
-    """ Initializes all SubtitleServers. """
-    if not _all_subtitle_servers_instance:
-        for cls_server in _all_subtitle_servers_class:
-            sub_server = cls_server()
-            _all_subtitle_servers_instance[sub_server.code] = sub_server
-
-
-def get_server_codes():
-    """ Returns list of all server codes. """
-    init_servers()
-
-    server_codes = sorted(
-        [code for code in _all_subtitle_servers_instance.keys()])
-
-    return server_codes
-
-
-def get_server(server_code):
-    """ Returns a SubtitleServer. """
-    init_servers()
-
-    server = _all_subtitle_servers_instance.get(server_code, None)
-
-    if server is None:
-        raise ServerCodeError(server_code)
-
-    return server
-
-
-def get_servers(server_codes):
-    """ Returns several SubtitleServers. """
-    init_servers()
-
-    servers = [
-        server for code, server in _all_subtitle_servers_instance.items()
-        if code in server_codes
-    ]
-
-    if servers is None:
-        raise ServerCodeError(server_codes)
-
-    return servers
-
 
 # EOF
