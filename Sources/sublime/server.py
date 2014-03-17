@@ -68,31 +68,48 @@ class SubtitleProvider(metaclass=ProviderMount):
     _instances = []
 
     @staticmethod
-    def get_servers():
-        """ Returns several SubtitleServers. """
+    def _create_instances():
+        """ Creates all provider instances. """
         if not SubtitleProvider._instances:
             SubtitleProvider._instances = [
                 provider() for provider in SubtitleProvider.providers
             ]
 
+    @staticmethod
+    def get_providers():
+        """ Returns several SubtitleProvider. """
+        SubtitleProvider._create_instances()
+
         return SubtitleProvider._instances
 
+    @staticmethod
+    def get_provider(code):
+        """ Retrieves a provider with a code. """
+        SubtitleProvider._create_instances()
+
+        provider = None
+
+        for sub_provider in SubtitleProvider._instances:
+            if sub_provider.code == code:
+                provider = sub_provider
+                break
+
+        return provider
+
 
 # -----------------------------------------------------------------------------
 #
-# SubtitleServer class
+# XMLRPCServer class
 #
 # -----------------------------------------------------------------------------
-class SubtitleServer(object):
-    """ Class to connect to subtitles server and download subtitles. """
+class XMLRPCServer(object):
+    """ Class to connect via XMLRPC to subtitles server
+    and download subtitles. """
 
     USER_AGENT = "OS Test User Agent"
 
-    def __init__(self, name, address, code, xmlrpc_uri):
+    def __init__(self, xmlrpc_uri):
         """ Initializes instance. """
-        self.name = name
-        self.address = address
-        self.code = code
         self.xmlrpc_uri = xmlrpc_uri
         self._session_string = None
         self._proxy = None
@@ -153,23 +170,21 @@ class SubtitleServer(object):
 # OpenSubtitlesServer class
 #
 # -----------------------------------------------------------------------------
-class OpenSubtitlesServer(SubtitleProvider, SubtitleServer):
+class OpenSubtitlesServer(SubtitleProvider, XMLRPCServer):
     """ """
     XMLRPC_URI = "http://api.opensubtitles.org/xml-rpc"
     DEFAULT_LANGUAGE = "en"
 
-    STATUS_REGEXP = r"(?P<code>\d+) (?P<message>\w+)"
+    STATUS_REGEXP = r'(?P<code>\d+) (?P<message>\w+)'
     SERIES_REGEXP = r'^"(?P<serie_name>.*)" (?P<episode_name>.*)$'
 
     def __init__(self):
         """ Initializes instance. """
-        SubtitleServer.__init__(
-            self,
-            "OpenSubtitles",
-            "http://www.opensubtitles.org",
-            "os",
-            OpenSubtitlesServer.XMLRPC_URI
-        )
+        XMLRPCServer.__init__(self, OpenSubtitlesServer.XMLRPC_URI)
+
+        self.name = "OpenSubtitles"
+        self.address = "http://www.opensubtitles.org"
+        self.code = "os"
 
         self._status_regexp = re.compile(OpenSubtitlesServer.STATUS_REGEXP)
         self._series_regexp = re.compile(OpenSubtitlesServer.SERIES_REGEXP)
@@ -178,7 +193,7 @@ class OpenSubtitlesServer(SubtitleProvider, SubtitleServer):
         """ Connect to Server. """
         response = self._proxy.LogIn(
             "", "",
-            OpenSubtitlesServer.DEFAULT_LANGUAGE, SubtitleServer.USER_AGENT)
+            OpenSubtitlesServer.DEFAULT_LANGUAGE, XMLRPCServer.USER_AGENT)
 
         LOG.debug("Connect response: {}".format(response))
 

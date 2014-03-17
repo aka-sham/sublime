@@ -79,7 +79,7 @@ def execute(args):
                 video.languages_to_download.append(selected_lang)
 
     # Search subtitles for videos
-    for sub_server in SubtitleProvider.get_servers():
+    for sub_server in SubtitleProvider.get_providers():
         sub_server.connect()
         sub_server.download_subtitles(
             videos, selected_languages,

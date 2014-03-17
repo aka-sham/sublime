@@ -19,7 +19,25 @@ import babelfish
 
 from sublime.util import get_exe_dir
 from sublime.core import Video
+from sublime.server import SubtitleProvider
 from sublime.server import OpenSubtitlesServer
+
+
+# -----------------------------------------------------------------------------
+#
+# SubtitleProviderTestCase class
+#
+# -----------------------------------------------------------------------------
+class SubtitleProviderTestCase(unittest.TestCase):
+    """ Tests SubtitleProvider class. """
+
+    def test_get_providers(self):
+        """ Tests getting all Subtitle Providers. """
+        all_providers = SubtitleProvider.get_providers()
+        self.assertEqual(len(all_providers), 1)
+
+        open_subtitle_provider = SubtitleProvider.get_provider("os")
+        self.assertEqual(open_subtitle_provider.name, "OpenSubtitles")
 
 
 # -----------------------------------------------------------------------------
