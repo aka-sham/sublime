@@ -34,10 +34,9 @@ class SubtitleProviderTestCase(unittest.TestCase):
     def test_get_providers(self):
         """ Tests getting all Subtitle Providers. """
         all_providers = SubtitleProvider.get_providers()
-        self.assertEqual(len(all_providers), 1)
-
-        open_subtitle_provider = SubtitleProvider.get_provider("os")
-        self.assertEqual(open_subtitle_provider.name, "OpenSubtitles")
+        open_subtitle_provider = SubtitleProvider(
+            "OpenSubtitles", "http://www.opensubtitles.org", "os")
+        self.assertIn(open_subtitle_provider, all_providers)
 
 
 # -----------------------------------------------------------------------------

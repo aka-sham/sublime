@@ -67,34 +67,26 @@ class SubtitleProvider(metaclass=ProviderMount):
 
     _instances = []
 
+    def __init__(self, name, address, code):
+        """ Initializes instance. """
+        self.name = name
+        self.address = address
+        self.code = code
+
     @staticmethod
-    def _create_instances():
-        """ Creates all provider instances. """
+    def get_providers():
+        """ Returns several SubtitleProvider. """
         if not SubtitleProvider._instances:
             SubtitleProvider._instances = [
                 provider() for provider in SubtitleProvider.providers
             ]
 
-    @staticmethod
-    def get_providers():
-        """ Returns several SubtitleProvider. """
-        SubtitleProvider._create_instances()
-
         return SubtitleProvider._instances
 
-    @staticmethod
-    def get_provider(code):
-        """ Retrieves a provider with a code. """
-        SubtitleProvider._create_instances()
-
-        provider = None
-
-        for sub_provider in SubtitleProvider._instances:
-            if sub_provider.code == code:
-                provider = sub_provider
-                break
-
-        return provider
+    def __eq__(self, other):
+        return (self.name == other.name and
+                self.address == other.address and
+                self.code == other.code)
 
 
 # -----------------------------------------------------------------------------
@@ -180,11 +172,13 @@ class OpenSubtitlesServer(SubtitleProvider, XMLRPCServer):
 
     def __init__(self):
         """ Initializes instance. """
+        SubtitleProvider.__init__(
+            self,
+            "OpenSubtitles",
+            "http://www.opensubtitles.org",
+            "os"
+        )
         XMLRPCServer.__init__(self, OpenSubtitlesServer.XMLRPC_URI)
-
-        self.name = "OpenSubtitles"
-        self.address = "http://www.opensubtitles.org"
-        self.code = "os"
 
         self._status_regexp = re.compile(OpenSubtitlesServer.STATUS_REGEXP)
         self._series_regexp = re.compile(OpenSubtitlesServer.SERIES_REGEXP)
