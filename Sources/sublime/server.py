@@ -132,11 +132,25 @@ class XMLRPCServer(object):
             rename=False, rename_pattern=None, underscore=True):
         """ Download a list of subtitles. """
         LOG.info("Download subtitles from {}...".format(self.name))
+        response = False
+        videos_hashcode = {video.hash_code: video for video in videos}
 
         with pattern(rename_pattern, underscore):
-            return self._execute(
-                self._do_download_subtitles,
-                [videos, languages, rename])
+            # First search if subtitles are available
+            subtitles = self._execute(
+                self._do_search_subtitles,
+                [videos_hashcode, languages])
+
+            # Rename videos if demanded
+            if rename:
+                [video.rename() for video in videos_hashcode.values()]
+
+            # Download subtitles
+            if subtitles:
+                response = self._execute(
+                    self._do_download_subtitles, [subtitles])
+
+        return response
 
     def _execute(self, method, args=[]):
         """ Decorates method of SubtitleServer. """
@@ -157,7 +171,11 @@ class XMLRPCServer(object):
         """ Disconnect from a subtitles server. """
         raise NotImplementedError("Please Implement this method")
 
-    def _do_download_subtitles(self, videos, languages, rename):
+    def _do_search_subtitles(self, videos_hashcode, languages):
+        """ Search list of subtitles. """
+        raise NotImplementedError("Please Implement this method")
+
+    def _do_download_subtitles(self, subtitles):
         """ Download a list of subtitles. """
         raise NotImplementedError("Please Implement this method")
 

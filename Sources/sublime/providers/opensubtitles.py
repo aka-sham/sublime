@@ -86,18 +86,14 @@ class OpenSubtitlesServer(SubtitleProvider, XMLRPCServer):
 
         return not self.connected
 
-    def _do_download_subtitles(self, videos, languages, rename):
-        """ Download a list of subtitles. """
-        is_ok = False
-
-        videos_hashcode = {video.hash_code: video for video in videos}
-        matching_subtitles = {}
+    def _do_search_subtitles(self, videos_hashcode, languages):
+        """ Search list of subtitles. """
         subtitles_infos = []
 
         # Search subtitles
         hashcodes_sizes = [
             {'moviehash': video.hash_code, 'moviebytesize': video.size}
-            for video in videos
+            for video in videos_hashcode.values()
         ]
         response = self._proxy.SearchSubtitles(
             self._session_string, hashcodes_sizes)
@@ -155,41 +151,43 @@ class OpenSubtitlesServer(SubtitleProvider, XMLRPCServer):
         else:
             raise SubtitleServerError(self, self.get_status_reason(response))
 
-        # Rename videos
-        if rename:
-            [video.rename() for video in videos_hashcode.values()]
+        return subtitles_infos
 
-        if subtitles_infos:
-            # Clean up list of subtitles by taking highest rating per language
-            subtitles_infos.sort()
-            for _, group in itertools.groupby(subtitles_infos):
-                best_subtitle = max(list(group))
-                matching_subtitles[best_subtitle.id] = best_subtitle
+    def _do_download_subtitles(self, subtitles):
+        """ Download a list of subtitles. """
+        response = False
+        matching_subtitles = {}
 
-            # Download Subtitles
-            subtitles_id = list(matching_subtitles.keys())
-            response = self._proxy.DownloadSubtitles(
-                self._session_string, subtitles_id)
+        # Clean up list of subtitles by taking highest rating per language
+        subtitles.sort()
+        for _, group in itertools.groupby(subtitles):
+            best_subtitle = max(list(group))
+            matching_subtitles[best_subtitle.id] = best_subtitle
 
-            if self.status_ok(response):
-                if 'data' in response and response['data']:
-                    for encoded_file in response['data']:
-                        subtitle_id = encoded_file['idsubtitlefile']
-                        decoded_file = base64.standard_b64decode(
-                            encoded_file['data'])
-                        file_data = zlib.decompress(decoded_file, 47)
+        # Download Subtitles
+        subtitles_id = list(matching_subtitles.keys())
+        response = self._proxy.DownloadSubtitles(
+            self._session_string, subtitles_id)
 
-                        subtitle = matching_subtitles[subtitle_id]
-                        subtitle.write(file_data)
-                    is_ok = True
-                else:
-                    raise SubtitleServerError(
-                        self, "There is no result when downloading subtitles.")
+        if self.status_ok(response):
+            if 'data' in response and response['data']:
+                for encoded_file in response['data']:
+                    subtitle_id = encoded_file['idsubtitlefile']
+                    decoded_file = base64.standard_b64decode(
+                        encoded_file['data'])
+                    file_data = zlib.decompress(decoded_file, 47)
+
+                    subtitle = matching_subtitles[subtitle_id]
+                    subtitle.write(file_data)
+                response = True
             else:
                 raise SubtitleServerError(
-                    self, self.get_status_reason(response))
+                    self, "There is no result when downloading subtitles.")
+        else:
+            raise SubtitleServerError(
+                self, self.get_status_reason(response))
 
-        return is_ok
+        return response
 
     def status_ok(self, response):
         """ Is status returned by server is OK ? """
