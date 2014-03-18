@@ -16,6 +16,8 @@ import zlib
 import base64
 import re
 import itertools
+import struct
+import os
 
 from babelfish import Language
 
@@ -23,6 +25,9 @@ from sublime.core import Subtitle
 from sublime.core import Movie
 from sublime.core import Episode
 from sublime.core import VideoFactory
+from sublime.core import VideoError
+from sublime.core import VideoSizeError
+from sublime.core import VideoHashCodeError
 
 from sublime.server import SubtitleProvider
 from sublime.server import XMLRPCServer
@@ -92,8 +97,8 @@ class OpenSubtitlesServer(SubtitleProvider, XMLRPCServer):
 
         # Search subtitles
         hashcodes_sizes = [
-            {'moviehash': video.hash_code, 'moviebytesize': video.size}
-            for video in videos_hashcode.values()
+            {'moviehash': hash_code, 'moviebytesize': video.size}
+            for hash_code, video in videos_hashcode.items()
         ]
         response = self._proxy.SearchSubtitles(
             self._session_string, hashcodes_sizes)
@@ -213,6 +218,44 @@ class OpenSubtitlesServer(SubtitleProvider, XMLRPCServer):
             reason = match_result.group("message")
 
         return reason
+
+    def hashcode(self, video_filepath):
+        """ Generates Video Hash code. """
+        hash_code = None
+
+        try:
+            struct_format = 'q'  # long long
+            struct_size = struct.calcsize(struct_format)
+
+            with open(video_filepath, "rb") as movie_file:
+
+                filesize = os.path.getsize(video_filepath)
+                movie_hash = filesize
+
+                if filesize < 65536 * 2:
+                    raise VideoError()
+
+                for x in range(65536//struct_size):
+                    buffer = movie_file.read(struct_size)
+                    (l_value,) = struct.unpack(struct_format, buffer)
+                    movie_hash += l_value
+                    movie_hash = movie_hash & 0xFFFFFFFFFFFFFFFF
+
+                movie_file.seek(max(0, filesize - 65536), 0)
+
+                for x in range(65536//struct_size):
+                    buffer = movie_file.read(struct_size)
+                    (l_value,) = struct.unpack(struct_format, buffer)
+                    movie_hash += l_value
+                    movie_hash = movie_hash & 0xFFFFFFFFFFFFFFFF
+
+                hash_code = "%016x" % movie_hash
+        except VideoError as error:
+            raise VideoSizeError(video_filepath)
+        except Exception as error:
+            raise VideoHashCodeError(video_filepath, error)
+
+        return hash_code
 
 
 # EOF

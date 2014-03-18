@@ -18,7 +18,11 @@ import shutil
 import babelfish
 
 from sublime.util import get_exe_dir
+
 from sublime.core import Video
+from sublime.core import VideoSizeError
+from sublime.core import VideoHashCodeError
+
 from sublime.providers.opensubtitles import OpenSubtitlesServer
 
 
@@ -36,6 +40,8 @@ class OpenSubtitlesServerTestCase(unittest.TestCase):
             babelfish.Language(code) for code in self.languages
         ]
 
+        self.mock_hashcode = lambda filepath: "8fcf0167e19c41be"
+
         self.video_filename = os.path.join(
             get_exe_dir(), 'Tests', 'Fixtures', 'movie.avi')
         self.video2_filename = os.path.join(
@@ -52,6 +58,34 @@ class OpenSubtitlesServerTestCase(unittest.TestCase):
         self.expected_renamed_english_subtitle_filename = os.path.join(
             get_exe_dir(), 'Tests', 'Fixtures', 'Louie_S01E01_Pilot.en.srt')
 
+    def test_generate_hash_code(self):
+        """ Tests that generate_hash_code generates a correct hash code. """
+        server = OpenSubtitlesServer()
+
+        video_filepath = os.path.join(
+            get_exe_dir(), 'Tests', 'Fixtures', 'hashcode.txt')
+        expected_hash = "13fb1d63375cf197"
+        result_hash = server.hashcode(video_filepath)
+
+        self.assertEqual(result_hash, expected_hash)
+
+        # Test exception file too small
+        video_filepath = os.path.join(
+            get_exe_dir(), 'Tests', 'Fixtures', 'hashcode_small.txt')
+        with self.assertRaises(VideoSizeError) as error:
+            server.hashcode(video_filepath)
+
+        self.assertEqual(error.exception.video_filepath, video_filepath)
+
+        # Test exception file does not exist
+        video_filepath = os.path.join(
+            get_exe_dir(), 'Tests', 'Fixtures', 'DUMMY')
+        with self.assertRaises(VideoHashCodeError) as error:
+            server.hashcode(video_filepath)
+
+        self.assertEqual(error.exception.video_filepath, video_filepath)
+        self.assertIsNotNone(error.exception.error)
+
     def test_connect_to_OpenSubtitles(self):
         """ Tests if it is possible to connect to OpenSubtitles. """
         server = OpenSubtitlesServer()
@@ -64,13 +98,14 @@ class OpenSubtitlesServerTestCase(unittest.TestCase):
         """ Tests if it is possible to download
         a subtitle from OpenSubtitles. """
         episode = Video(self.video_filename)
-        episode.hash_code = "8fcf0167e19c41be"
         episode.size = str(243500836)
         episode.languages_to_download = self.babel_languages
 
         server = OpenSubtitlesServer()
         server.connect()
-        response = server.download_subtitles([episode], self.babel_languages)
+        response = server.download_subtitles(
+            [episode], self.babel_languages,
+            mock_hash=self.mock_hashcode)
         self.assertTrue(response)
         self.assertTrue(os.path.exists(
             self.expected_french_subtitle_filename))
@@ -82,14 +117,14 @@ class OpenSubtitlesServerTestCase(unittest.TestCase):
         """ Tests if it is possible to download
         and rename a subtitle from OpenSubtitles. """
         episode = Video(self.video_filename)
-        episode.hash_code = "8fcf0167e19c41be"
         episode.size = str(243500836)
         episode.languages_to_download = self.babel_languages
 
         server = OpenSubtitlesServer()
         server.connect()
         response = server.download_subtitles(
-            [episode], self.babel_languages, True)
+            [episode], self.babel_languages, True,
+            mock_hash=self.mock_hashcode)
         self.assertTrue(response)
         self.assertTrue(os.path.exists(self.expected_renamed_video_filename))
         self.assertTrue(os.path.exists(

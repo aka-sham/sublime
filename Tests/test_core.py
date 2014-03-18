@@ -16,46 +16,8 @@ import os
 import shutil
 
 from sublime.util import get_exe_dir
-from sublime.core import generate_hash_code
-from sublime.core import VideoSizeError
-from sublime.core import VideoHashCodeError
 from sublime.core import Episode
 from sublime.core import NamePattern as pattern
-
-
-# -----------------------------------------------------------------------------
-#
-# VideoModuleTestCase class
-#
-# -----------------------------------------------------------------------------
-class VideoModuleTestCase(unittest.TestCase):
-    """ Tests Video module functions. """
-
-    def test_generate_hash_code(self):
-        """ Tests that generate_hash_code generates a correct hash code. """
-        video_filepath = os.path.join(
-            get_exe_dir(), 'Tests', 'Fixtures', 'hashcode.txt')
-        expected_hash = "13fb1d63375cf197"
-        result_hash = generate_hash_code(video_filepath)
-
-        self.assertEqual(result_hash, expected_hash)
-
-        # Test exception file too small
-        video_filepath = os.path.join(
-            get_exe_dir(), 'Tests', 'Fixtures', 'hashcode_small.txt')
-        with self.assertRaises(VideoSizeError) as error:
-            generate_hash_code(video_filepath)
-
-        self.assertEqual(error.exception.video_filepath, video_filepath)
-
-        # Test exception file does not exist
-        video_filepath = os.path.join(
-            get_exe_dir(), 'Tests', 'Fixtures', 'DUMMY')
-        with self.assertRaises(VideoHashCodeError) as error:
-            generate_hash_code(video_filepath)
-
-        self.assertEqual(error.exception.video_filepath, video_filepath)
-        self.assertIsNotNone(error.exception.error)
 
 
 # -----------------------------------------------------------------------------

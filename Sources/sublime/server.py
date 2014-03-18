@@ -17,6 +17,8 @@ import logging
 import xmlrpc.client
 import pkgutil
 
+from sublime.core import Movie
+from sublime.core import Episode
 from sublime.core import NamePattern as pattern
 
 # Logger
@@ -129,11 +131,21 @@ class XMLRPCServer(object):
 
     def download_subtitles(
             self, videos, languages,
-            rename=False, rename_pattern=None, underscore=True):
+            rename=False, rename_pattern=None, underscore=True,
+            mock_hash=None):
         """ Download a list of subtitles. """
         LOG.info("Download subtitles from {}...".format(self.name))
+
+        # Use for testing purpose
+        if mock_hash is not None:
+            hashcode = mock_hash
+        else:
+            hashcode = self.hashcode
+
         response = False
-        videos_hashcode = {video.hash_code: video for video in videos}
+        videos_hashcode = {
+            hashcode(video.filename): video for video in videos
+        }
 
         with pattern(rename_pattern, underscore):
             # First search if subtitles are available
@@ -143,7 +155,8 @@ class XMLRPCServer(object):
 
             # Rename videos if demanded
             if rename:
-                [video.rename() for video in videos_hashcode.values()]
+                [video.rename() for video in videos_hashcode.values()
+                    if isinstance(video, (Movie, Episode))]
 
             # Download subtitles
             if subtitles:
@@ -151,6 +164,10 @@ class XMLRPCServer(object):
                     self._do_download_subtitles, [subtitles])
 
         return response
+
+    def hashcode(self, video_filepath):
+        """ Generates Video Hash code depending. """
+        raise NotImplementedError("Please Implement this method")
 
     def _execute(self, method, args=[]):
         """ Decorates method of SubtitleServer. """

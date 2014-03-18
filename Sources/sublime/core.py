@@ -14,10 +14,10 @@
 import logging
 import os
 import shutil
-import struct
 import guessit
 import enzyme
 import glob
+import uuid
 
 from babelfish import Language
 from babelfish import Error as BabelfishError
@@ -59,8 +59,8 @@ class Video(object):
 
     def __init__(self, video_filepath):
         """ Initializes instance. """
+        self.id = uuid.uuid4()
         self.filename = os.path.abspath(video_filepath)
-        self.hash_code = generate_hash_code(self.filename)
         self.size = str(os.path.getsize(self.filename))
         self.signature = None
         self.languages_to_download = []
@@ -138,11 +138,11 @@ class Video(object):
         return Video.FILE_MAGIC.is_mkv(file_signature)
 
     def __eq__(self, other):
-        return self.hash_code == other.hash_code
+        return self.id == other.id
 
     def __repr__(self):
         return "<Video('{}', '{}', '{}', '{}')>".format(
-            self.filename, self.hash_code, self.size)
+            self.filename, self.id, self.size)
 
 
 # -----------------------------------------------------------------------------
@@ -171,8 +171,7 @@ class Movie(Video):
         return self.filename
 
     def __repr__(self):
-        return "<Movie('{}', '{}', '{}', '{}', '{}')>".format(
-            self.filename, self.hash_code, self.size, self.name)
+        return "<Movie('{}')>".format(self.name)
 
 
 # -----------------------------------------------------------------------------
@@ -211,9 +210,8 @@ class Episode(Video):
         return self.filename
 
     def __repr__(self):
-        return "<Episode('{}', '{}', '{}', '{}', '{}', '{}', '{}')>".format(
-            self.filename, self.hash_code, self.size, self.name,
-            self.season, self.episode, self.episode_name)
+        return "<Episode('{}', '{}', '{}', '{}')>".format(
+            self.name, self.season, self.episode, self.episode_name)
 
 
 # -----------------------------------------------------------------------------
@@ -388,48 +386,5 @@ class VideoHashCodeError(VideoError):
             .format(self.video_filepath, self.error)
         )
 
-
-# -----------------------------------------------------------------------------
-#
-# Module methods
-#
-# -----------------------------------------------------------------------------
-def generate_hash_code(video_filepath):
-    """ Generates Movie Hash code. """
-    hash_code = None
-
-    try:
-        struct_format = 'q'  # long long
-        struct_size = struct.calcsize(struct_format)
-
-        with open(video_filepath, "rb") as movie_file:
-
-            filesize = os.path.getsize(video_filepath)
-            movie_hash = filesize
-
-            if filesize < 65536 * 2:
-                raise VideoError()
-
-            for x in range(65536//struct_size):
-                buffer = movie_file.read(struct_size)
-                (l_value,) = struct.unpack(struct_format, buffer)
-                movie_hash += l_value
-                movie_hash = movie_hash & 0xFFFFFFFFFFFFFFFF
-
-            movie_file.seek(max(0, filesize - 65536), 0)
-
-            for x in range(65536//struct_size):
-                buffer = movie_file.read(struct_size)
-                (l_value,) = struct.unpack(struct_format, buffer)
-                movie_hash += l_value
-                movie_hash = movie_hash & 0xFFFFFFFFFFFFFFFF
-
-            hash_code = "%016x" % movie_hash
-    except VideoError as error:
-        raise VideoSizeError(video_filepath)
-    except Exception as error:
-        raise VideoHashCodeError(video_filepath, error)
-
-    return hash_code
 
 # EOF
