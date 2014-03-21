@@ -11,10 +11,6 @@
 # Creation date    : 28/08/2013
 ##
 
-# Using setuptools... Without bundling it
-import ez_setup
-ez_setup.use_setuptools()
-
 # Add sources of SubLime in path
 import sys
 source_dir = "Sources"
@@ -58,7 +54,12 @@ setup(
         "Topic :: Home Automation",
         "Topic :: Utilities",
     ],
-    install_requires=open('requirements.txt').readlines(),
+    install_requires=[
+        "babelfish==0.5.1",
+        "enzyme==0.4.1",
+        "guessit==0.7",
+        "stevedore==0.14.1"
+    ],
     test_suite='nose.collector',
     tests_require=['nose>=1.3.0'],
 )
