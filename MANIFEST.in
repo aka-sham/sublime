@@ -1,0 +1,4 @@
+include DESCRIPTION.rst
+recursive-include Tests *.py
+include Config/file_signatures.csv
+recursive-include Config *.conf

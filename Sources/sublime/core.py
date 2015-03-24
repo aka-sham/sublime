@@ -22,8 +22,8 @@ import uuid
 from babelfish import Language
 from babelfish import Error as BabelfishError
 
-from sublime.util import FileMagic
-from sublime.util import FileMagicError
+from sublime.file import FileMagic
+from sublime.file import FileMagicError
 
 # Logger
 LOG = logging.getLogger("sublime.core")

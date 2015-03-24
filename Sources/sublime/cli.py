@@ -17,12 +17,12 @@ import argparse
 
 import babelfish
 
+import sublime
+
 from sublime import util
 from sublime.server import SubtitleProvider
 from sublime.core import Episode
 from sublime.core import VideoFactory
-
-__version__ = util.get_version_from_git()
 
 # Gets execution directory
 exe_dir = util.get_exe_dir()
@@ -124,9 +124,9 @@ def run():
             "SubLime is a command-line program for searching "
             "and downloading the right subtitles for movies."
         ),
-        prog='SubLime')
+        prog='sublime')
 
-    sublime_version = '%(prog)s ' + __version__
+    sublime_version = '%(prog)s ' + sublime.__version__
 
     parser.add_argument(
         '--version', action='version',
