@@ -43,7 +43,9 @@ LOG = logging.getLogger("sublime.providers.OpenSubtitles")
 #
 # -----------------------------------------------------------------------------
 class OpenSubtitlesServer(SubtitleProvider, XMLRPCServer):
+
     """ """
+
     XMLRPC_URI = "http://api.opensubtitles.org/xml-rpc"
     DEFAULT_LANGUAGE = "en"
 

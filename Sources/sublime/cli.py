@@ -116,7 +116,7 @@ def run():
     """ Main command-line execution loop. """
     # Languages
     language_codes = babelfish.language.LANGUAGES
-    default_languages = ('eng', 'fra')
+    default_languages = ['eng', 'fra']
 
     # create the arguments parser
     parser = argparse.ArgumentParser(

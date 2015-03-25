@@ -31,6 +31,7 @@ LOG = logging.getLogger("sublime.server")
 #
 # -----------------------------------------------------------------------------
 class ProviderMount(type):
+
     """ Metaclass ProviderMount to store all SubtitleServers
     into a dictionary. """
 
@@ -51,6 +52,7 @@ class ProviderMount(type):
 #
 # -----------------------------------------------------------------------------
 class SubtitleProvider(metaclass=ProviderMount):
+
     """ Mount point for subtitles providers.
 
     Providers implementing this reference should provide
@@ -104,10 +106,11 @@ class SubtitleProvider(metaclass=ProviderMount):
 #
 # -----------------------------------------------------------------------------
 class XMLRPCServer(object):
+
     """ Class to connect via XMLRPC to subtitles server
     and download subtitles. """
 
-    USER_AGENT = "OS Test User Agent"
+    USER_AGENT = "OSTestUserAgent"
 
     def __init__(self, xmlrpc_uri):
         """ Initializes instance. """
@@ -211,6 +214,7 @@ class ServerError(Exception):
 
 
 class SubtitleServerError(ServerError):
+
     """ Exception raised if a subtitle server return an error status.
 
     Attributes:

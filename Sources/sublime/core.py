@@ -35,6 +35,7 @@ LOG = logging.getLogger("sublime.core")
 #
 # -----------------------------------------------------------------------------
 class Video(object):
+
     """ Video class. """
 
     # List of video extensions
@@ -151,6 +152,7 @@ class Video(object):
 #
 # -----------------------------------------------------------------------------
 class Movie(Video):
+
     """ Movie class. """
 
     def __init__(self, video_filepath):
@@ -180,6 +182,7 @@ class Movie(Video):
 #
 # -----------------------------------------------------------------------------
 class Episode(Video):
+
     """ Episode class. """
 
     RENAME_PATTERN = "{serie_name} S{season:02d}E{episode:02d} {episode_name}"
@@ -220,6 +223,7 @@ class Episode(Video):
 #
 # -----------------------------------------------------------------------------
 class NamePattern(object):
+
     """ Pattern context manager used for renaming video files. """
 
     def __init__(self, pattern=None, underscore=True):
@@ -246,6 +250,7 @@ class NamePattern(object):
 #
 # -----------------------------------------------------------------------------
 class VideoFactory(object):
+
     """ VideoFactory class which creates Video instances. """
 
     @staticmethod
@@ -299,6 +304,7 @@ class VideoFactory(object):
 #
 # -----------------------------------------------------------------------------
 class Subtitle(object):
+
     """ Subtitle class manages subtitle files. """
 
     # List of subtitles extensions
@@ -356,6 +362,7 @@ class VideoError(Exception):
 
 
 class VideoSizeError(VideoError):
+
     """ Exception raised if the size of a movie file is too small.
 
     Attributes:
@@ -370,6 +377,7 @@ class VideoSizeError(VideoError):
 
 
 class VideoHashCodeError(VideoError):
+
     """ Exception raised if there is an error during hash code generation.
 
     Attributes:

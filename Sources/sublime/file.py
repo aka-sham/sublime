@@ -27,6 +27,7 @@ LOG = logging.getLogger(__name__)
 #
 # -----------------------------------------------------------------------------
 class Signature(object):
+
     """ Signature class which hold information about file signatures. """
 
     def __init__(self, magic_number, description):
@@ -49,6 +50,7 @@ class Signature(object):
 #
 # -----------------------------------------------------------------------------
 class FileMagic(object):
+
     """ FileMagic will try to determine the file's type by using
     file signatures (magic numbers in the file's header). """
 
@@ -71,6 +73,7 @@ class FileMagic(object):
         return setattr(self._instance, attr, val)
 
     class __FileMagic():
+
         """ Inner class for Singleton purpose. """
 
         def __init__(self, video_extensions):
@@ -155,6 +158,7 @@ class FileMagicError(Exception):
 
 
 class FileExtensionMismatchError(FileMagicError):
+
     """ Exception raised if the extension of a file and its signature mismatch.
 
     Attributes:
@@ -177,6 +181,7 @@ class FileExtensionMismatchError(FileMagicError):
 
 
 class FileUnknownError(FileMagicError):
+
     """ Exception raised if a file is not recognized by FileMagic.
 
     Attributes:
