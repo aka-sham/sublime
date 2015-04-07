@@ -21,6 +21,7 @@ import uuid
 
 from babelfish import Language
 from babelfish import Error as BabelfishError
+from babelfish.exceptions import LanguageConvertError
 
 from sublime.file import FileMagic
 from sublime.file import FileMagicError
@@ -115,8 +116,15 @@ class Video(object):
         dir_name = os.path.dirname(self.filename)
         base_name, _ = os.path.splitext(os.path.basename(self.filename))
 
+        # Select the most appropriate language code (alpha2)
+        language_code = language.alpha3
+        try:
+            language_code = language.alpha2
+        except LanguageConvertError:
+            pass
+
         search_subtitle = os.path.join(
-            dir_name, "{}.{}.*".format(base_name, language.alpha2))
+            dir_name, "{}.{}.*".format(base_name, language_code))
         existing_subtitles = [
             sub_file for sub_file in glob.glob(search_subtitle)
             if os.path.splitext(sub_file)[1] in Subtitle.EXTENSIONS
@@ -328,8 +336,16 @@ class Subtitle(object):
         """ Get filepath of subtitle file we want to write. """
         dir_name = os.path.dirname(self.video.filename)
         base_name, _ = os.path.splitext(os.path.basename(self.video.filename))
+
+        # Select the most appropriate language code (alpha2)
+        language_code = self.language.alpha3
+        try:
+            language_code = self.language.alpha2
+        except LanguageConvertError:
+            pass
+
         filename = "{}.{}.{}".format(
-            base_name, self.language.alpha2, self.extension)
+            base_name, language_code, self.extension)
 
         return os.path.join(dir_name, filename)
 
