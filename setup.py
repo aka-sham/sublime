@@ -76,7 +76,7 @@ setup(
         "Topic :: Utilities",
     ],
     install_requires=[
-        "babelfish==0.5.1",
+        "babelfish==0.5.4",
         "enzyme==0.4.1",
         "guessit==0.7",
         "stevedore==0.14.1"
