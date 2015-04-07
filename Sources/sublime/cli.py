@@ -33,14 +33,25 @@ os.environ['SUBLIME_HOME'] = exe_dir
 # Gets a logger
 LOG = util.init_logging()
 
+# Default languages downloaded
+DEFAULT_LANGUAGES = ['eng', 'fra']
+
 
 def execute(args):
     """ Executes SubLime with given arguments. """
     videos = []
+
+    if args.selected_languages:
+        languages = args.selected_languages
+    else:
+        languages = DEFAULT_LANGUAGES
+
     selected_languages = [
         babelfish.Language(selected_lang)
-        for selected_lang in args.selected_languages
+        for selected_lang in languages
     ]
+
+    LOG.debug("Languages selected: {}".format(selected_languages))
 
     # List of filenames directly given by user
     if args.video_files:
@@ -116,7 +127,6 @@ def run():
     """ Main command-line execution loop. """
     # Languages
     language_codes = babelfish.language.LANGUAGES
-    default_languages = ['eng', 'fra']
 
     # create the arguments parser
     parser = argparse.ArgumentParser(
@@ -146,7 +156,7 @@ def run():
     # Optional arguments
     parser.add_argument(
         '-l', '--language', action='append',
-        default=default_languages, help='Sets languages to filter.',
+        help='Sets languages to filter.',
         dest='selected_languages',
         choices=language_codes, metavar="LANGUAGE CODE")
     parser.add_argument(
