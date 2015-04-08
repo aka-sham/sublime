@@ -79,7 +79,7 @@ setup(
         "babelfish==0.5.4",
         "enzyme==0.4.1",
         "guessit==0.7",
-        "stevedore==0.14.1"
+        "stevedore==1.3.0"
     ],
     data_files=[
         ('Config', ['Config/logging.conf']),
