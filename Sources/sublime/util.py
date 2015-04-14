@@ -11,6 +11,7 @@
 # Creation date    : 29/08/2013
 ##
 
+import re
 import os
 import sys
 import logging
@@ -47,5 +48,39 @@ def init_logging():
     logging.config.fileConfig(log_file)
 
     return logging.getLogger("tact")
+
+
+def init_metadata():
+    """ Initialize Metadata by reading the __init__ file from
+    SubLime package and creating a dictionary. """
+    metadata = {}
+    here = os.path.abspath(os.path.dirname(__file__))
+    package_file = os.path.join(here, '__init__.py')
+
+    with open(package_file, encoding='utf-8') as f:
+        metadata_file = f.read()
+
+        metadata = dict(
+            re.findall("__([a-z]+)__\s*=\s*'([^']+)'", metadata_file))
+
+    return metadata
+
+
+# -----------------------------------------------------------------------------
+#
+# Metadata class
+#
+# -----------------------------------------------------------------------------
+class Metadata:
+
+    """ Metadata class to extract information from SubLime package. """
+
+    METADATA = init_metadata()
+
+    @staticmethod
+    def get(key):
+        """ Get the metadata value with its key. """
+        return Metadata.METADATA.get(key, "")
+
 
 # EOF

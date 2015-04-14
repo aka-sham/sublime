@@ -65,11 +65,14 @@ class OpenSubtitlesServer(SubtitleProvider, XMLRPCServer):
         self._status_regexp = re.compile(OpenSubtitlesServer.STATUS_REGEXP)
         self._series_regexp = re.compile(OpenSubtitlesServer.SERIES_REGEXP)
 
+        LOG.debug("Open Subtitles server ready. {}".format(self.user_agent))
+
     def _do_connect(self):
         """ Connect to Server. """
         response = self._proxy.LogIn(
             "", "",
-            OpenSubtitlesServer.DEFAULT_LANGUAGE, XMLRPCServer.USER_AGENT)
+            OpenSubtitlesServer.DEFAULT_LANGUAGE,
+            self.user_agent)
 
         LOG.debug("Connect response: {}".format(response))
 

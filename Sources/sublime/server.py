@@ -17,6 +17,7 @@ import logging
 import xmlrpc.client
 import pkgutil
 
+from sublime.util import Metadata
 from sublime.core import Movie
 from sublime.core import Episode
 from sublime.core import NamePattern as pattern
@@ -110,14 +111,16 @@ class XMLRPCServer(object):
     """ Class to connect via XMLRPC to subtitles server
     and download subtitles. """
 
-    USER_AGENT = "OSTestUserAgent"
+    USER_AGENT = "{} {}".format(
+        Metadata.get("title"), Metadata.get("version"))
 
-    def __init__(self, xmlrpc_uri):
+    def __init__(self, xmlrpc_uri, user_agent=USER_AGENT):
         """ Initializes instance. """
         self.xmlrpc_uri = xmlrpc_uri
         self._session_string = None
         self._proxy = None
         self.connected = False
+        self.user_agent = user_agent
 
     def connect(self):
         """ Connect to a subtiles server. """
