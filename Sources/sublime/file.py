@@ -26,7 +26,7 @@ LOG = logging.getLogger(__name__)
 # Signature class
 #
 # -----------------------------------------------------------------------------
-class Signature(object):
+class Signature:
 
     """ Signature class which hold information about file signatures. """
 
@@ -49,7 +49,7 @@ class Signature(object):
 # FileMagic class
 #
 # -----------------------------------------------------------------------------
-class FileMagic(object):
+class FileMagic:
 
     """ FileMagic will try to determine the file's type by using
     file signatures (magic numbers in the file's header). """
