@@ -3,6 +3,7 @@ __pycache__/
 logs/
 nose-*.egg/
 virtualenv/
+venv/
 setuptools-*
 Sources/SubLime.egg-info/*
 *.pyc
